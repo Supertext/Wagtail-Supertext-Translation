@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wagtail-supertext-translation"
+dynamic = ["version"]
+description = "Supertext AI translation for Wagtail: a wagtail-localize machine translator"
+readme = "README.md"
+license = "BSD-3-Clause"
+authors = [{ name = "Supertext AG", email = "support@supertext.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "wagtail>=7.0",
+    "wagtail-localize>=1.12",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+]
+classifiers = [
+    "Framework :: Django",
+    "Framework :: Wagtail",
+    "Framework :: Wagtail :: 7",
+    "Framework :: Wagtail :: 8",
+    "Programming Language :: Python :: 3",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-django>=4.9"]
+
+[project.urls]
+Homepage = "https://github.com/Supertext/Wagtail-Supertext-Translation"
+
+[tool.hatch.version]
+path = "wagtail_supertext/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wagtail_supertext"]
+
+[tool.hatch.build.targets.sdist]
+include = ["wagtail_supertext", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+testpaths = ["tests"]

@@ -1,0 +1,6 @@
+wagtail==8.0
+wagtail-localize==1.14.5
+gunicorn==23.0.0
+whitenoise==6.9.0
+dj-database-url==2.3.0
+psycopg[binary]==3.2.10

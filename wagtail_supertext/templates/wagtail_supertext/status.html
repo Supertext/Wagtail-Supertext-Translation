@@ -1,0 +1,55 @@
+{% extends "wagtailadmin/generic/base.html" %}
+{% load i18n wagtailadmin_tags %}
+
+{% block main_content %}
+  <section class="w-mb-8">
+    <h2 class="w-h3">{% trans "Connection" %}</h2>
+    {% if not active %}
+      <div class="help-block help-warning">
+        {% icon name="warning" %}
+        <p>{% blocktrans trimmed %}Supertext is not the machine translator of this site. Set <code>WAGTAILLOCALIZE_MACHINE_TRANSLATOR</code> to <code>wagtail_supertext.SupertextTranslator</code> (see the installation guide).{% endblocktrans %}</p>
+      </div>
+    {% endif %}
+    <dl class="supertext-config">
+      <dt>{% trans "API key" %}</dt>
+      <dd>
+        {% if options.api_key %}
+          {% if options.api_key_source == "environment" %}{% trans "Set (SUPERTEXT_API_KEY environment variable)" %}{% else %}{% trans "Set (Django settings)" %}{% endif %}
+        {% else %}
+          <strong>{% trans "Missing" %}</strong>
+        {% endif %}
+      </dd>
+      <dt>{% trans "API" %}</dt>
+      <dd><code>{{ options.base_url }}</code></dd>
+    </dl>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="button button-secondary">{% trans "Test connection" %}</button>
+    </form>
+  </section>
+
+  <section>
+    <h2 class="w-h3">{% trans "Languages" %}</h2>
+    <p class="help">{% blocktrans trimmed %}Each target locale is sent to Supertext with this language code and tone. Change them with the <code>LANGUAGES</code> option.{% endblocktrans %}</p>
+    <table class="listing">
+      <thead>
+        <tr><th>{% trans "Locale" %}</th><th>{% trans "Supertext language" %}</th><th>{% trans "Tone" %}</th></tr>
+      </thead>
+      <tbody>
+        {% for locale in locales %}
+          <tr>
+            <td>{{ locale.name }} <code>{{ locale.code }}</code></td>
+            <td>{% if locale.is_source %}{% trans "Source language" %}{% else %}<code>{{ locale.target }}</code>{% endif %}</td>
+            <td>{% if locale.is_source %}–{% elif locale.politeness == "more" %}{% trans "Formal (Sie, vous)" %}{% elif locale.politeness == "less" %}{% trans "Informal (du, tu)" %}{% else %}{% trans "Default" %}{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <style>
+    .supertext-config { display: grid; grid-template-columns: max-content 1fr; gap: .5rem 1.5rem; margin: 1rem 0 1.5rem; }
+    .supertext-config dt { font-weight: 600; }
+    .supertext-config dd { margin: 0; }
+  </style>
+{% endblock %}

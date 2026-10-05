@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { python: '3.11', wagtail: 'wagtail>=7.0,<7.1' }
+          - { python: '3.12', wagtail: 'wagtail>=7.4,<7.5' }
+          - { python: '3.13', wagtail: 'wagtail>=8.0,<8.1' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install "${{ matrix.wagtail }}" -e ".[test]"
+      - run: pytest -q
+
+  # Builds the demo like Railway does and runs it once against PostgreSQL:
+  # migrations, demo accounts, sample content, and a translation through the stand-in API.
+  demo:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      DJANGO_SECRET_KEY: ci
+      DEMO_ADMIN_EMAIL: admin@example.com
+      DEMO_ADMIN_PASSWORD: ci-admin-password-1
+      DEMO_EDITOR_EMAIL: editor@example.com
+      DEMO_EDITOR_PASSWORD: ci-editor-password-1
+      SUPERTEXT_API_KEY: Supertext-Auth-Key ci-key
+      SUPERTEXT_API_ENDPOINT: http://127.0.0.1:8765/v1/
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r demo/requirements.txt .
+      - run: nohup node tests/docs/stand-in.mjs > standin.log 2>&1 &
+      - name: First and second start
+        working-directory: demo
+        run: |
+          python createdb.py
+          python manage.py migrate --noinput -v 0
+          python manage.py demo_setup
+          python manage.py demo_setup | grep -c "left unchanged" | grep -q 2
+          python manage.py supertext_check
+      - name: Translate the sample article into German
+        working-directory: demo
+        run: |
+          python manage.py shell -c "
+          from django.contrib.auth import get_user_model
+          from wagtail.models import Locale
+          from wagtail_localize.machine_translators import get_machine_translator
+          from wagtail_localize.models import Translation, TranslationSource
+          from wagtail_localize.views.edit_translation import apply_machine_translation
+          from home.models import ArticlePage
+          user = get_user_model().objects.get(email='editor@example.com')
+          home = ArticlePage.objects.get(locale__language_code='en').get_parent().specific
+          de = Locale.objects.get(language_code='de-ch')
+          for page in (home, ArticlePage.objects.get(locale__language_code='en')):
+              source, _ = TranslationSource.get_or_create_from_instance(page)
+              t = Translation.objects.create(source=source, target_locale=de)
+              t.save_target(user=user)
+              assert apply_machine_translation(t.id, user, get_machine_translator())
+              t.save_target(user=user, publish=True)
+          german = ArticlePage.objects.get(locale=de)
+          print(german.title, german.slug)
+          assert german.title == 'Schweizer Schokolade, weltweit versandt'
+          assert german.slug == 'schweizer-schokolade-weltweit-versandt'
+          assert '<b>Berner</b>' in str(german.body[1].value.source)
+          "
+      - if: failure()
+        run: cat standin.log

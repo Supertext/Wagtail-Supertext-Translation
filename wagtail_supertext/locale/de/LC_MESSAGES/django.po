@@ -1,0 +1,71 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: wagtail-supertext-translation\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Supertext Translation"
+msgstr "Supertext-Übersetzung"
+
+msgid "Supertext"
+msgstr "Supertext"
+
+msgid "Connected. The API key works."
+msgstr "Verbunden. Der API-Schlüssel funktioniert."
+
+msgid "Connection"
+msgstr "Verbindung"
+
+msgid "Supertext is not the machine translator of this site. Set <code>WAGTAILLOCALIZE_MACHINE_TRANSLATOR</code> to <code>wagtail_supertext.SupertextTranslator</code> (see the installation guide)."
+msgstr "Supertext ist nicht der maschinelle Übersetzer dieser Website. Setzen Sie <code>WAGTAILLOCALIZE_MACHINE_TRANSLATOR</code> auf <code>wagtail_supertext.SupertextTranslator</code> (siehe Installationsanleitung)."
+
+msgid "API key"
+msgstr "API-Schlüssel"
+
+msgid "Set (SUPERTEXT_API_KEY environment variable)"
+msgstr "Gesetzt (Umgebungsvariable SUPERTEXT_API_KEY)"
+
+msgid "Set (Django settings)"
+msgstr "Gesetzt (Django-Einstellungen)"
+
+msgid "Missing"
+msgstr "Fehlt"
+
+msgid "API"
+msgstr "API"
+
+msgid "Test connection"
+msgstr "Verbindung testen"
+
+msgid "Languages"
+msgstr "Sprachen"
+
+msgid "Each target locale is sent to Supertext with this language code and tone. Change them with the <code>LANGUAGES</code> option."
+msgstr "Jede Zielsprache wird mit diesem Sprachcode und dieser Anrede an Supertext gesendet. Ändern lässt sich das mit der Option <code>LANGUAGES</code>."
+
+msgid "Locale"
+msgstr "Sprache"
+
+msgid "Supertext language"
+msgstr "Supertext-Sprache"
+
+msgid "Tone"
+msgstr "Anrede"
+
+msgid "Source language"
+msgstr "Ausgangssprache"
+
+msgid "Formal (Sie, vous)"
+msgstr "Formell (Sie, vous)"
+
+msgid "Informal (du, tu)"
+msgstr "Informell (du, tu)"
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "Supertext could not translate: %(error)s"
+msgstr "Supertext konnte nicht übersetzen: %(error)s"

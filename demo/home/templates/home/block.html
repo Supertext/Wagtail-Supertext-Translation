@@ -1,0 +1,1 @@
+{% load wagtailcore_tags %}{% if block.block_type == "heading" %}<h2>{{ block.value }}</h2>{% elif block.block_type == "quote" %}<blockquote><p>{{ block.value.text }}</p>{% if block.value.author %}<cite>{{ block.value.author }}</cite>{% endif %}</blockquote>{% else %}{% include_block block %}{% endif %}

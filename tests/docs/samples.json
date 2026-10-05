@@ -1,0 +1,44 @@
+{
+ "de": {
+  "Supertext Wagtail Demo": "Supertext Wagtail Demo",
+  "home-en": "home-en",
+  "This site was written in <b>English</b>. Open any page in the admin and choose <i>Translate this page</i> to create the German, French and Italian versions with Supertext.": "Diese Website wurde in <b>Englisch</b> verfasst. Öffnen Sie eine beliebige Seite im Admin und wählen Sie «<i>Diese Seite übersetzen</i>», um die deutsche, französische und italienische Version mit Supertext zu erstellen.",
+  "Swiss chocolate, shipped worldwide": "Schweizer Schokolade, weltweit versandt",
+  "How a small family business in Bern brings handmade pralines to <b>40 countries</b>.": "Wie ein kleines Familienunternehmen in Bern handgefertigte Pralinen in <b>40 Länder</b> bringt.",
+  "From Bern to the world": "Von Bern in die Welt",
+  "Every praline is made by hand in our <b>Bern</b> workshop. Read more on <a id=\"a1\">our website</a>.": "Jede Praline wird in unserer <b>Berner</b> Werkstatt von Hand hergestellt. Lesen Sie mehr auf <a id=\"a1\">unserer Website</a>.",
+  "Fresh ingredients from local farmers": "Frische Zutaten von lokalen Bauern",
+  "Climate-neutral delivery within 48 hours": "Klimaneutrale Lieferung innerhalb von 48 Stunden",
+  "The best chocolate I have ever tasted.": "Die beste Schokolade, die ich je probiert habe.",
+  "A happy customer": "Ein zufriedener Kunde",
+  "swiss chocolate shipped worldwide": "Schweizer Schokolade weltweit versandt"
+ },
+ "fr": {
+  "Supertext Wagtail Demo": "Supertext Wagtail Demo",
+  "home-en": "home-fr",
+  "This site was written in <b>English</b>. Open any page in the admin and choose <i>Translate this page</i> to create the German, French and Italian versions with Supertext.": "Ce site a été rédigé en <b>anglais</b>. Ouvrez n’importe quelle page de l’administration et choisissez <i>Traduire cette page</i> pour créer les versions allemande, française et italienne avec Supertext.",
+  "Swiss chocolate, shipped worldwide": "Chocolat suisse, expédié dans le monde entier",
+  "How a small family business in Bern brings handmade pralines to <b>40 countries</b>.": "Comment une petite entreprise familiale de Berne exporte des pralines artisanales dans <b>40 pays</b>.",
+  "From Bern to the world": "De Berne vers le monde",
+  "Every praline is made by hand in our <b>Bern</b> workshop. Read more on <a id=\"a1\">our website</a>.": "Chaque praline est confectionnée à la main dans notre <b>atelier</b> de Berne. En savoir plus sur <a id=\"a1\">notre site</a>.",
+  "Fresh ingredients from local farmers": "Ingrédients frais provenant de fermes locales",
+  "Climate-neutral delivery within 48 hours": "Livraison neutre en carbone dans les 48 heures",
+  "The best chocolate I have ever tasted.": "Le meilleur chocolat que j’ai jamais goûté.",
+  "A happy customer": "Un client satisfait",
+  "swiss chocolate shipped worldwide": "chocolat suisse expédié dans le monde entier"
+ },
+ "it": {
+  "Supertext Wagtail Demo": "Supertext Wagtail Demo",
+  "home-en": "home-it",
+  "This site was written in <b>English</b>. Open any page in the admin and choose <i>Translate this page</i> to create the German, French and Italian versions with Supertext.": "Questo sito è stato scritto in <b>inglese</b>. Apra una qualsiasi pagina dell’area amministrativa e scelga <i>Traduca questa pagina</i> per creare le versioni in tedesco, francese e italiano con Supertext.",
+  "Swiss chocolate, shipped worldwide": "Cioccolato svizzero, spedito in tutto il mondo",
+  "How a small family business in Bern brings handmade pralines to <b>40 countries</b>.": "Come un piccolo esercizio a conduzione familiare di Berna porta praline artigianali in <b>40 paesi</b>.",
+  "From Bern to the world": "Da Berna al mondo",
+  "Every praline is made by hand in our <b>Bern</b> workshop. Read more on <a id=\"a1\">our website</a>.": "Ogni pralina è realizzata a mano nel nostro <b>laboratorio</b> di Berna. Per maggiori informazioni, visiti il <a id=\"a1\">nostro sito web</a>.",
+  "Fresh ingredients from local farmers": "Ingredienti freschi provenienti da agricoltori locali",
+  "Climate-neutral delivery within 48 hours": "Consegna a impatto zero sul clima entro 48 ore",
+  "The best chocolate I have ever tasted.": "Il miglior cioccolato che abbia mai assaggiato.",
+  "A happy customer": "Un cliente soddisfatto",
+  "swiss chocolate shipped worldwide": "cioccolato svizzero spedito in tutto il mondo"
+ }
+}

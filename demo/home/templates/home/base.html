@@ -1,0 +1,21 @@
+{% load wagtailcore_tags i18n %}<!DOCTYPE html>
+<html lang="{{ page.locale.language_code|default:'en' }}">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title }} · Supertext Wagtail Demo</title>
+  <style>
+    body { font: 17px/1.6 system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; color: #1d1d1f; }
+    nav.languages a { margin-right: .75rem; } nav.languages a.active { font-weight: 700; text-decoration: none; }
+    blockquote { border-left: 4px solid #d0d0d0; margin: 1.5rem 0; padding-left: 1rem; color: #444; }
+    footer { margin-top: 3rem; font-size: .85rem; color: #666; }
+  </style>
+</head>
+<body>
+  <nav class="languages">
+    <a class="active" href="{% pageurl page %}">{{ page.locale.get_display_name }}</a>
+    {% for translation in page.get_translations.live %}<a href="{% pageurl translation %}">{{ translation.locale.get_display_name }}</a>{% endfor %}
+  </nav>
+  {% block content %}{% endblock %}
+  <footer>Supertext Translation for Wagtail · demo</footer>
+</body>
+</html>
