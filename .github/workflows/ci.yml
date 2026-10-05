@@ -12,15 +12,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - { python: '3.11', wagtail: 'wagtail>=7.0,<7.1' }
-          - { python: '3.12', wagtail: 'wagtail>=7.4,<7.5' }
-          - { python: '3.13', wagtail: 'wagtail>=8.0,<8.1' }
+          - { python: '3.11', wagtail: 'wagtail>=7.0,<7.1', django: 'django>=5.2,<5.3' }
+          - { python: '3.12', wagtail: 'wagtail>=7.4,<7.5', django: 'django>=5.2,<5.3' }
+          - { python: '3.13', wagtail: 'wagtail>=8.0,<8.1', django: 'django>=6.1,<6.2' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: pip install "${{ matrix.wagtail }}" -e ".[test]"
+      - run: pip install "${{ matrix.wagtail }}" "${{ matrix.django }}" -e ".[test]"
       - run: pytest -q
 
   # Builds the demo like Railway does and runs it once against PostgreSQL:

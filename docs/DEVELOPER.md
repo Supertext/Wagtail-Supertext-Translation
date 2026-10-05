@@ -80,12 +80,12 @@ pytest
 
 CI (`.github/workflows/ci.yml`) on every push and pull request:
 
-- **test**: the suite on Python 3.11/Wagtail 7.0, 3.12/7.4 and 3.13/8.0.
+- **test**: the suite on Python 3.11 with Wagtail 7.0 and Django 5.2, 3.12 with Wagtail 7.4 and Django 5.2, and 3.13 with Wagtail 8.0 and Django 6.1.
 - **demo**: installs the demo, runs migrations and `demo_setup` twice against PostgreSQL, `supertext_check`, then translates the home page and the sample article into German through the stand-in API and checks the title, slug and markup.
 
 ## Demo (Railway)
 
-The public demo is a container built from `demo/Dockerfile`: Wagtail 8 with wagtail-localize and this package, English plus German, French and Italian (Switzerland), a home page and a sample article. It runs on Railway in the `supertext-cms-demos` project, service `Wagtail`, region EU West (Amsterdam). The database is a `wagtail` database on the project's PostgreSQL service.
+The public demo is a container built from `demo/Dockerfile`: Wagtail 8 with wagtail-localize and this package, English plus German, French and Italian (Switzerland), a home page and a sample article. It runs on Railway in the `supertext-cms-demos` project, service `Wagtail`, region EU West (Amsterdam): <https://wagtail-production-b129.up.railway.app/> (admin: `/admin/`). The database is a `wagtail` database on the project's PostgreSQL service.
 
 **Deploys:** Railway watches `main` of this repository (`railway.json` points it at `demo/Dockerfile`) and rebuilds on every push.
 

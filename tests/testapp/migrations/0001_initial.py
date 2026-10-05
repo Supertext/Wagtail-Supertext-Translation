@@ -2,7 +2,6 @@
 
 import django.db.models.deletion
 import wagtail.fields
-from django.conf import settings
 from django.db import migrations, models
 
 
@@ -11,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("wagtailcore", "0098_apitoken"),
+        ("wagtailcore", "0094_alter_page_locale"),
     ]
 
     operations = [
@@ -26,7 +25,7 @@ class Migration(migrations.Migration):
                         parent_link=True,
                         primary_key=True,
                         serialize=False,
-                        to=settings.WAGTAIL_PAGE_MODEL,
+                        to="wagtailcore.page",
                     ),
                 ),
                 ("intro", wagtail.fields.RichTextField(blank=True)),
