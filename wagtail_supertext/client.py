@@ -19,6 +19,11 @@ LIVE = "https://api.supertext.com/v1/"
 STAGING = "https://api.staging.supertext.com/v1/"
 TESTING = "https://api.testing.supertext.com/v1/"
 
+#: Where administrators create a Supertext account (or log in).
+SIGNUP_URL = "https://www.supertext.com/person/en/account/signin"
+#: Where they generate the API key (supertext.com → Integrations → API; needs the Admin role).
+API_KEY_URL = "https://www.supertext.com/en/integrations/api"
+
 #: Stay well below the API's 1,000,000 character limit per document.
 MAX_DOCUMENT_CHARACTERS = 900_000
 
@@ -144,7 +149,10 @@ class SupertextClient:
 
     def _request(self, method: str, path: str, **kwargs) -> requests.Response:
         if not self.api_key:
-            raise SupertextError("No Supertext API key is configured.")
+            raise SupertextError(
+                "No Supertext API key is configured. Generate one at "
+                f"{API_KEY_URL} (requires the Admin role in your Supertext account)."
+            )
         headers = {"Accept": "application/json", "Authorization": f"Supertext-Auth-Key {self.api_key}"}
         for attempt in range(RATE_LIMIT_RETRIES + 1):
             try:
@@ -159,7 +167,7 @@ class SupertextClient:
         if 200 <= code < 300:
             return response
         if code in (401, 403):
-            message = "Authentication failed. Please check the Supertext API key."
+            message = f"Authentication failed. Please check the Supertext API key (generate a new one at {API_KEY_URL})."
         elif code == 404:
             message = "The requested Supertext resource was not found."
         elif code == 413:

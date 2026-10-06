@@ -18,6 +18,7 @@
         {% else %}
           <strong>{% trans "Missing" %}</strong>
         {% endif %}
+        <p class="help">{% blocktrans trimmed %}No Supertext account yet? <a href="{{ signup_url }}" target="_blank" rel="noopener">Create one at supertext.com</a>. Generate your API key at <a href="{{ api_key_url }}" target="_blank" rel="noopener">supertext.com → Integrations → API</a> (requires the Admin role), then set it as the <code>SUPERTEXT_API_KEY</code> environment variable.{% endblocktrans %}</p>
       </dd>
       <dt>{% trans "API" %}</dt>
       <dd><code>{{ options.base_url }}</code></dd>
@@ -51,5 +52,6 @@
     .supertext-config { display: grid; grid-template-columns: max-content 1fr; gap: .5rem 1.5rem; margin: 1rem 0 1.5rem; }
     .supertext-config dt { font-weight: 600; }
     .supertext-config dd { margin: 0; }
+    .supertext-config dd .help { margin: .25rem 0 0; }
   </style>
 {% endblock %}

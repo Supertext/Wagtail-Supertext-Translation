@@ -13,7 +13,7 @@ For administrators and developers adding Supertext to a Wagtail site.
 | Wagtail | 8.0 (tested), 7.0–7.4 (tested in CI) |
 | wagtail-localize | 1.12 or newer |
 | Python | 3.10 or newer (whatever your Wagtail needs) |
-| Supertext | An account with an API key (supertext.com → Integrations → API) |
+| Supertext | An account ([create one or log in](https://www.supertext.com/person/en/account/signin)) and an API key ([supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api), needs the Admin role). See [Getting a Supertext account and API key](#getting-a-supertext-account-and-api-key). |
 | Network | The server must reach `https://api.supertext.com` over HTTPS |
 
 This package is a machine translator **for wagtail-localize**. If your site doesn't use wagtail-localize yet, set it up first: [wagtail-localize installation](https://wagtail-localize.org/stable/tutorial/2-installation/). That includes `WAGTAIL_I18N_ENABLED = True`, `WAGTAIL_CONTENT_LANGUAGES` and making your page models translatable (Wagtail pages are by default).
@@ -50,6 +50,11 @@ WAGTAILLOCALIZE_MACHINE_TRANSLATOR = {
 ```
 
 wagtail-localize uses one machine translator per site; this replaces DeepL or Google if you had one configured.
+
+### Getting a Supertext account and API key
+
+1. **No Supertext account yet?** [Create one at supertext.com](https://www.supertext.com/person/en/account/signin) (the same page logs you in if you already have one).
+2. **Generate your API key** at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). This requires the **Admin** role in your Supertext account; ask your Supertext account admin if you don't see the page.
 
 **API key:** set the environment variable **`SUPERTEXT_API_KEY`** on the server. It always takes precedence over `API_KEY`, and keeps the key out of your code. You can use the key exactly as Supertext shows it, with the leading `Supertext-Auth-Key`, or without it.
 
@@ -119,8 +124,8 @@ Remove `WAGTAILLOCALIZE_MACHINE_TRANSLATOR` (or point it at another translator),
 | Message / symptom | Cause / fix |
 | --- | --- |
 | No **Translate with Supertext** button in the translation editor | `WAGTAILLOCALIZE_MACHINE_TRANSLATOR` isn't set to `wagtail_supertext.SupertextTranslator`. *Settings → Supertext* shows a warning then. The button is also missing when source and target end up as the same Supertext language. |
-| *No Supertext API key is configured* | Set `SUPERTEXT_API_KEY` (or `API_KEY`) and restart. |
-| *Authentication failed* | The key is wrong or revoked. Check it with **Test connection**. |
+| *No Supertext API key is configured* | Set `SUPERTEXT_API_KEY` (or `API_KEY`) and restart. No key yet? Generate one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api) (Admin role). |
+| *Authentication failed* | The key is wrong or revoked. Check it with **Test connection**, or generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). |
 | *Too many requests to Supertext* | Supertext's per-second limit was still exceeded after 4 automatic retries. Wait a moment and try again. |
 | *Your Supertext translation limit is exceeded* | Your Supertext plan's volume is used up. |
 | *Timed out waiting* | Very long pages: raise `TIMEOUT`, and your web server's request timeout (e.g. gunicorn `--timeout`). |

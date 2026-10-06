@@ -64,8 +64,8 @@ If Supertext can't translate, the translation editor shows a red message startin
 
 | Message | What to do |
 | --- | --- |
-| *No Supertext API key is configured* | Ask your administrator to set up Supertext. |
-| *Authentication failed* | The API key is wrong; ask your administrator. |
+| *No Supertext API key is configured* | Ask your administrator to set up Supertext. The message links to the page where a Supertext admin generates the key ([supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)). |
+| *Authentication failed* | The API key is wrong; ask your administrator to generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). |
 | *Too many requests to Supertext* | Wait a moment and try again. |
 | *Your Supertext translation limit is exceeded* | Your organisation's Supertext volume is used up; contact your administrator. |
 | *There isn't anything left to translate* | All texts already have a translation. |

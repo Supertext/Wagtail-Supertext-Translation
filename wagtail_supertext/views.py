@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from wagtail.models import Locale
 
 from . import conf
-from .client import SupertextError
+from .client import API_KEY_URL, SIGNUP_URL, SupertextError
 
 
 def status(request):
@@ -51,5 +51,7 @@ def status(request):
             "active": config.get("CLASS") == conf.TRANSLATOR_CLASS,
             "options": options,
             "locales": locales,
+            "signup_url": SIGNUP_URL,
+            "api_key_url": API_KEY_URL,
         },
     )

@@ -20,7 +20,7 @@ Open a page, choose **Translate this page**, pick the languages, and click **Tra
 | [User guide](docs/USER_GUIDE.md) | Editors: translating, reviewing, what gets translated |
 | [Developer guide](docs/DEVELOPER.md) | Architecture, API protocol, local development, tests, demo deployment, releases |
 
-Quick start:
+Quick start (you need a Supertext account, [create one here](https://www.supertext.com/person/en/account/signin), and an API key from [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api), which requires the Admin role):
 
 ```python
 # settings.py (wagtail-localize already set up)

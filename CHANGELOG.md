@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- *Settings → Supertext*, the "No Supertext API key" and "Authentication failed" messages, the installation guide and the README now link to Supertext account signup and API key generation (supertext.com → Integrations → API, Admin role required).
 - First version: `wagtail_supertext.SupertextTranslator`, a wagtail-localize machine translator using the Supertext AI file translation API (Wagtail 7.0+, wagtail-localize 1.12+). Editors use wagtail-localize's **Translate with Supertext** button.
 - All missing strings of a page go to Supertext as one document per language; each string (a whole paragraph with its inline formatting and links) is one unit, so sentences translate as a whole.
 - Page slugs are translated as words and turned back into slugs.
