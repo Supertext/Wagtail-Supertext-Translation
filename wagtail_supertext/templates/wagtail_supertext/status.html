@@ -22,6 +22,8 @@
       </dd>
       <dt>{% trans "API" %}</dt>
       <dd><code>{{ options.base_url }}</code></dd>
+      <dt>{% trans "Plugin version" %}</dt>
+      <dd>{% if version_url %}<a href="{{ version_url }}" target="_blank" rel="noopener">{{ version }}</a>{% else %}{{ version }}{% endif %}</dd>
     </dl>
     <form method="post">
       {% csrf_token %}

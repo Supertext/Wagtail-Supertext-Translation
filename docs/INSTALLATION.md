@@ -60,9 +60,9 @@ wagtail-localize uses one machine translator per site; this replaces DeepL or Go
 
 ## 3. Check it works
 
-As a superuser, open **Settings → Supertext** in the Wagtail admin and click **Test connection**. *Connected. The API key works.* means everything is in place. The page also lists which Supertext language code and tone each locale gets.
+As a superuser, open **Settings → Supertext** in the Wagtail admin and click **Test connection**. *Connected. The API key works.* means everything is in place. The page also shows the installed plugin version (linked to its release notes on GitHub) and lists which Supertext language code and tone each locale gets.
 
-![Settings → Supertext: API key set from the SUPERTEXT_API_KEY environment variable, API https://api.supertext.com/v1/, the Test connection button with the message Connected. The API key works., and the languages table: Deutsch (Schweiz) de-CH formal, English source language, Français (Suisse) fr-CH formal](images/settings-supertext.png)
+![Settings → Supertext: API key set from the SUPERTEXT_API_KEY environment variable, API https://api.supertext.com/v1/, Plugin version 0.1.0, the Test connection button with the message Connected. The API key works., and the languages table: Deutsch (Schweiz) de-CH formal, English source language, Français (Suisse) fr-CH formal](images/settings-supertext.png)
 
 From the command line:
 

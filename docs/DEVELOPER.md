@@ -29,7 +29,7 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 | `document.py` | Builds/parses the HTML document (BeautifulSoup), chunking |
 | `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT`; Wagtail language code → Supertext code (`de-ch` → `de-CH`) and tone |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
-| `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, language table, *Test connection* |
+| `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), language table, *Test connection* |
 | `management/commands/supertext_check.py` | `python manage.py supertext_check` |
 | `locale/de/` | German admin strings |
 

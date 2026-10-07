@@ -126,3 +126,17 @@ def test_status_page(client, monkeypatch):
     assert response.status_code == 200
     html = response.content.decode()
     assert "Set (Django settings)" in html and "https://api.supertext.com/v1/" in html and "fr-CH" in html
+
+
+def test_status_page_shows_version(client):
+    from wagtail_supertext import __version__
+    from wagtail_supertext.views import release_url
+
+    user = get_user_model().objects.create_superuser("admin", "admin@example.com", "pw")
+    client.force_login(user)
+    html = client.get("/admin/supertext/").content.decode()
+    assert "Plugin version" in html and __version__ in html
+    if release_url(__version__):
+        assert f'href="https://github.com/Supertext/Wagtail-Supertext-Translation/releases/tag/v{__version__}"' in html
+    assert release_url("1.2.3").endswith("/releases/tag/v1.2.3")
+    assert release_url("1.2.3.dev0") is None

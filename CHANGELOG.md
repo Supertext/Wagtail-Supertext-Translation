@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- *Settings → Supertext* shows the plugin version, linked to its release notes on GitHub.
+
 ## 0.1.0 — 2026-10-07
 
 - *Settings → Supertext*, the "No Supertext API key" and "Authentication failed" messages, the installation guide and the README now link to Supertext account signup and API key generation (supertext.com → Integrations → API, Admin role required).

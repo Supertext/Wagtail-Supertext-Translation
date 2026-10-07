@@ -40,6 +40,9 @@ msgstr "Noch kein Supertext-Konto? <a href=\"%(signup_url)s\" target=\"_blank\" 
 msgid "API"
 msgstr "API"
 
+msgid "Plugin version"
+msgstr "Plugin-Version"
+
 msgid "Test connection"
 msgstr "Verbindung testen"
 

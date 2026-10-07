@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -10,8 +12,18 @@ from django.template.response import TemplateResponse
 from django.utils.translation import gettext as _
 from wagtail.models import Locale
 
-from . import conf
+from . import __version__, conf
 from .client import API_KEY_URL, SIGNUP_URL, SupertextError
+
+
+RELEASES_URL = "https://github.com/Supertext/Wagtail-Supertext-Translation/releases/tag/v{version}"
+
+
+def release_url(version: str) -> str | None:
+    """Link to the GitHub release when the version looks like one (X.Y.Z)."""
+    if re.fullmatch(r"\d+\.\d+\.\d+", version or ""):
+        return RELEASES_URL.format(version=version)
+    return None
 
 
 def status(request):
@@ -53,5 +65,7 @@ def status(request):
             "locales": locales,
             "signup_url": SIGNUP_URL,
             "api_key_url": API_KEY_URL,
+            "version": __version__,
+            "version_url": release_url(__version__),
         },
     )
