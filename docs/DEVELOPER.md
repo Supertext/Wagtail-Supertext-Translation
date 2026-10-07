@@ -145,10 +145,14 @@ On *Settings → Supertext* the script replaces the stand-in's local address wit
 
 ## Releasing
 
-1. Bump `__version__` in `wagtail_supertext/__init__.py`.
-2. Move the *Unreleased* entries in `CHANGELOG.md` under the new version.
-3. Tag `vX.Y.Z` on `main`. Publishing to PyPI (`python -m build && twine upload dist/*`) is planned.
+Releases are published by `.github/workflows/release.yml` when the version is officially bumped; nobody tags or creates releases by hand.
 
+1. Move the *Unreleased* entries in `CHANGELOG.md` under a new `## X.Y.Z — YYYY-MM-DD` section, and keep an empty *Unreleased* above it.
+2. Set the same version in:
+   - `wagtail_supertext/__init__.py`: `__version__`, the Python package version
+3. Push to `main`. The workflow checks that the version files match `CHANGELOG.md`, then tags `vX.Y.Z` and creates the GitHub release with the CHANGELOG section as notes (0.x versions as pre-releases). A push that adds no new version does nothing, and a version that is already released is skipped. After fixing a failed run, start it again with *Run workflow* on the *Release* workflow.
+
+Publishing to PyPI (`python -m build && twine upload dist/*`) is planned.
 ## Conventions
 
 - Black-compatible formatting, type hints in new code.
