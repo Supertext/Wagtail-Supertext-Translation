@@ -16,6 +16,18 @@ from wagtail.admin.utils import get_valid_next_url_from_request
 from .client import SupertextError
 
 
+def localized(error: SupertextError) -> str:
+    """The error's message in the current admin language (the API's own detail stays as sent)."""
+    template = getattr(error, "template", None)
+    if not template:
+        return str(error)
+    params = getattr(error, "params", None) or {}
+    text = _(template) % params if params else _(template)
+    if getattr(error, "detail", ""):
+        text += f" ({error.detail})"
+    return text
+
+
 def install():
     from wagtail_localize.views import edit_translation
 
@@ -28,7 +40,7 @@ def install():
         try:
             return original(request, translation_id)
         except SupertextError as error:
-            messages.error(request, _("Supertext could not translate: %(error)s") % {"error": error})
+            messages.error(request, _("Supertext could not translate: %(error)s") % {"error": localized(error)})
             return redirect(get_valid_next_url_from_request(request) or reverse("wagtailadmin_home"))
 
     machine_translate._supertext = True

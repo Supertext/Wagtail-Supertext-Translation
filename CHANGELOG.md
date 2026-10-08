@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Added: French and Italian interface (and German where it was missing): *Settings → Supertext* and all Supertext error messages follow the user's admin language.
+- The "No Supertext API key" and "Authentication failed" messages now also link to Supertext account signup.
 - *Settings → Supertext* shows the plugin version, linked to its release notes on GitHub.
 
 ## 0.1.0 — 2026-10-07

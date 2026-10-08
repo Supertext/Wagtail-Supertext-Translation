@@ -96,6 +96,10 @@ Per locale (keyed by its Wagtail language code) you can send a different code to
 
 wagtail-localize's own permissions apply: editors need **Can submit translation** (*Settings → Groups → Wagtail Localize*) and edit permission on the pages. Anyone who can edit a translation can use **Translate with Supertext** in it. *Settings → Supertext* is for superusers only.
 
+## Interface languages
+
+*Settings → Supertext* and the plugin's messages are available in English, German, French and Italian. They follow each user's Wagtail admin language (*Account → Preferences → Preferred language*; `WAGTAILADMIN_PERMITTED_LANGUAGES` limits the choice). Other languages fall back to English. The `manage.py supertext_check` output is English only.
+
 ## All settings (`OPTIONS`)
 
 | Option | Default | Purpose |

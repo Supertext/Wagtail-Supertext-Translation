@@ -60,6 +60,8 @@ Your administrator sets per language whether Supertext writes formally (*Sie/vou
 
 ## When something goes wrong
 
+Supertext's messages follow your Wagtail admin language (English, German, French or Italian; set it under *Account → Preferences → Preferred language*).
+
 If Supertext can't translate, the translation editor shows a red message starting with *Supertext could not translate*; nothing is changed, so you can try again.
 
 | Message | What to do |

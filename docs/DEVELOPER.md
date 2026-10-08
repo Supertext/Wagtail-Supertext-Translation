@@ -31,7 +31,7 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
 | `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), language table, *Test connection* |
 | `management/commands/supertext_check.py` | `python manage.py supertext_check` |
-| `locale/de/` | German admin strings |
+| `locale/{de,fr,it}/` | German, French and Italian admin strings (`django.po` and compiled `django.mo`) |
 
 ### Strings and markup
 
@@ -156,7 +156,7 @@ Publishing to PyPI (`python -m build && twine upload dist/*`) is planned.
 ## Conventions
 
 - Black-compatible formatting, type hints in new code.
-- User-visible admin strings via Django's gettext, with German in `locale/de`.
+- User-visible admin strings via Django's gettext, translated in `wagtail_supertext/locale/{de,fr,it}/LC_MESSAGES/django.po` (English is the source). New or changed strings need all four languages in the same commit; recompile the `.mo` files with polib (see `CLAUDE.md`). `client.py` has no Django imports, so it marks its error messages with a local `gettext_noop` and keeps `template`/`params` on `SupertextError`; `errors.localized()` translates them in the admin. `tests/test_locale.py` checks that every marked string is in each catalog, placeholders match and the `.mo` files are current.
 - Keep the three docs in `docs/` current with every change (see `CLAUDE.md`).
 
 ## Known limitations / roadmap

@@ -23,6 +23,10 @@ Everywhere an administrator enters or is told about the API key — the settings
 
 Wording: "No Supertext account yet? Create one at supertext.com. Generate your API key at supertext.com → Integrations → API (requires the Admin role)." In the UI, links open in a new tab (`target="_blank" rel="noopener"`); where the CMS shows plain text only, use the bare URLs. New screens or messages that mention the key get the links too.
 
+## UI languages (always)
+
+The plugin's own UI (buttons, panels, dialogs, settings, permissions, messages) is available in English, German, French and Italian through the CMS's own translation mechanism, so it follows the user's back-end language. New or changed strings get all four languages in the same commit. Formal address (Sie, vous, Lei), the CMS's own terms in each language, "Supertext", placeholders and URLs never translated.
+
 ## Plugin list (always)
 
 `README.md` ends with the shared list of all Supertext plugins (between the `<!-- supertext-plugins:start -->` and `<!-- supertext-plugins:end -->` markers). It is identical in every Supertext plugin repo: when a plugin is added, renamed or its description changes, update the list in **all** repos, not just this one.
@@ -74,6 +78,6 @@ Lessons from the live API, apply them here: header `Authorization: Supertext-Aut
 
 - Before committing: `pytest` (unit tests plus wagtail-localize end to end on SQLite). CI also runs Wagtail 7.0/7.4/8.0 and the demo against PostgreSQL and the stand-in.
 - New options go in `wagtail_supertext/conf.py` **and** the settings table in `docs/INSTALLATION.md`.
-- Admin strings: update `wagtail_supertext/locale/de/LC_MESSAGES/django.po` and recompile the `.mo` (`python -c "import polib; polib.pofile('…/django.po').save_as_mofile('…/django.mo')"`).
+- Admin strings (including the error messages in `client.py`, marked with its own `gettext_noop`): update `wagtail_supertext/locale/{de,fr,it}/LC_MESSAGES/django.po` and recompile each `.mo`; `tests/test_locale.py` checks they are complete (`python -c "import polib; polib.pofile('…/django.po').save_as_mofile('…/django.mo')"`).
 - Keep `wagtail_supertext/client.py` free of Django imports (tested on its own).
 - `demo/` is the Railway demo (`railway.json` → `demo/Dockerfile`, context = repo root). Changing `demo/home/models.py` needs a migration (`cd demo && python manage.py makemigrations home`) committed with the change. Demo secrets live only in Railway variables.

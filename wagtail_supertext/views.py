@@ -14,6 +14,7 @@ from wagtail.models import Locale
 
 from . import __version__, conf
 from .client import API_KEY_URL, SIGNUP_URL, SupertextError
+from .errors import localized
 
 
 RELEASES_URL = "https://github.com/Supertext/Wagtail-Supertext-Translation/releases/tag/v{version}"
@@ -36,7 +37,7 @@ def status(request):
             options.client().validate_api_key()
             messages.success(request, _("Connected. The API key works."))
         except SupertextError as error:
-            messages.error(request, str(error))
+            messages.error(request, localized(error))
         return redirect("wagtail_supertext_status")
 
     config = getattr(settings, "WAGTAILLOCALIZE_MACHINE_TRANSLATOR", None) or {}
