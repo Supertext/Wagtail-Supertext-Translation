@@ -1,0 +1,2 @@
+# The Supertext API base URL (shown in a screenshot's alt text): it only answers API requests, a plain GET is 404.
+^https://api\.supertext\.com/v1/?$
