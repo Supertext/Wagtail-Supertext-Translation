@@ -48,7 +48,7 @@ class SupertextTranslator(BaseMachineTranslator):
             return {}
 
         client = self.client()
-        source = conf.bcp47(source_locale.language_code)
+        source = self.config.source_code(source_locale.language_code)
         target = self.config.target_code(target_locale.language_code)
         politeness = self.config.politeness(target_locale.language_code)
         is_slug = [bool(SLUG.match(string.data)) for string in strings]

@@ -72,13 +72,13 @@ python manage.py supertext_check
 
 ## 4. Locales
 
-Supertext translates into the site's **locales** (*Settings → Locales*, from `WAGTAIL_CONTENT_LANGUAGES`). Each locale's language code becomes the Supertext target language, with the region in capitals: `de-ch` → `de-CH`, `fr` → `fr`.
+Supertext translates into the site's **locales** (*Settings → Locales*, from `WAGTAIL_CONTENT_LANGUAGES`). Each locale's language code becomes the Supertext target language. Supertext needs a region for the target, so the code is sent with the region in capitals (`de-ch` → `de-CH`), and a code without region gets a default one: `de` → `de-DE`, `fr` → `fr-FR`, `it` → `it-IT`, `en` → `en-US` (and so on for other languages). The source language is sent without region (`en-gb` → `en`). To use another region, set `code` under `LANGUAGES` (below) or give the locale a regional code (`de-ch`). *Settings → Supertext* lists the code each locale is sent with.
 
 ![Settings → Locales: Deutsch (Schweiz), English, Français (Suisse) and Italiano (Svizzera)](images/locales.png)
 
 ### Language codes and tone
 
-Per locale (keyed by its Wagtail language code) you can send a different code to Supertext, and choose the tone:
+Per locale (keyed by its Wagtail language code) you can send a different code to Supertext (it wins over the default; when that locale is the source, its language without region is sent), and choose the tone:
 
 ```python
 "OPTIONS": {
@@ -107,7 +107,7 @@ wagtail-localize's own permissions apply: editors need **Can submit translation*
 | `API_KEY` | – | Supertext API key, with or without the `Supertext-Auth-Key` prefix. The `SUPERTEXT_API_KEY` environment variable wins. |
 | `ENVIRONMENT` | `"live"` | `"live"`, `"staging"` or `"testing"` Supertext API |
 | `ENDPOINT` | – | Custom API base URL (overrides `ENVIRONMENT`). The `SUPERTEXT_API_ENDPOINT` environment variable wins. |
-| `LANGUAGES` | `{}` | Per Wagtail language code: `code` (Supertext language) and `politeness` (`more`/`less`) |
+| `LANGUAGES` | `{}` | Per Wagtail language code: `code` (Supertext language with region, e.g. `de-CH`; default: the locale code, with a default region if it has none) and `politeness` (`more`/`less`) |
 | `TIMEOUT` | `180` | Seconds to wait for one translation |
 | `POLL_INTERVAL` | `2` | Seconds between status checks |
 
