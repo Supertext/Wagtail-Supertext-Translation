@@ -60,8 +60,8 @@ Auth header: `Authorization: Supertext-Auth-Key <key>`; a pasted `Supertext-Auth
 
 ```bash
 scripts/vendor-sdk.sh                  # latest main of the SDK repository
-scripts/vendor-sdk.sh v0.2.0           # a tag or commit
-SDK_DIR=../Supertext-API-SDK-and-Guide scripts/vendor-sdk.sh   # a local checkout
+scripts/vendor-sdk.sh <commit-or-branch>
+SDK_DIR=/path/to/clone scripts/vendor-sdk.sh   # a local clone as it is
 ```
 
 Then run `pytest` and note the SDK version in `CHANGELOG.md`. This stays so after the SDK is on PyPI.
@@ -72,7 +72,7 @@ How the plugin uses it: `SupertextClient.translate_strings()` packs the strings 
 
 Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `conf.py` turns Wagtail language codes into Supertext codes:
 
-- **Target** (`Options.target_code`): the `LANGUAGES` → `code` override if set, else the Wagtail code. It is normalized (`de_ch`/`de-ch` → `de-CH`, `zh-hant` → `zh-Hant`, `es-419` stays); a code without region gets a default region (`regional()`, the SDK's `language_codes.target()` and `DEFAULT_REGIONS`: de-DE, en-US, fr-FR, it-IT, pt-PT, zh-CN, …; the same table in every Supertext plugin). Unknown bare codes are sent unchanged, so Supertext's error names them.
+- **Target** (`Options.target_code`): the `LANGUAGES` → `code` override if set, else the Wagtail code. It is normalized (`de_ch`/`de-ch` → `de-CH`, `zh-hant` → `zh-Hant`, `es-419` stays, variants and extensions are dropped: `de_DE_formal` → `de-DE`); a code without region gets a default region (`regional()`, the SDK's `language_codes.target()` and `DEFAULT_REGIONS`: de-DE, en-US, fr-FR, it-IT, pt-PT, zh-CN, …; the same table in every Supertext plugin). Unknown bare codes are sent unchanged, so Supertext's error names them.
 - **Source** (`Options.source_code`): the bare language of the source's target code (`en-us` → `en`; an override's language wins). The client also strips any region before sending.
 - Translating within one language (`en` → `en-GB`) is allowed.
 

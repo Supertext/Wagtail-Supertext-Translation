@@ -9,6 +9,7 @@ All notable changes to this project are documented here.
 - The "No Supertext API key" and "Authentication failed" messages now also link to Supertext account signup.
 - *Settings → Supertext* shows the plugin version, linked to its release notes on GitHub.
 - Fixed: locales without a region (e.g. `de`, `fr`) are now sent to Supertext as `de-DE`, `fr-FR` (Supertext rejects targets without region).
+- Fixed: language codes with a variant or extension, such as `de_DE_formal` or `en-us-x-twain`, are sent to Supertext as `de-DE`, `en-US`.
 
 ## 0.1.0 — 2026-10-07
 
