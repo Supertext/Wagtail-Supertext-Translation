@@ -26,7 +26,7 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 | --- | --- |
 | `translator.py` | `SupertextTranslator(BaseMachineTranslator)`: `display_name = "Supertext"`, `can_translate()` (source and target Supertext codes differ), `translate()` |
 | `client.py` | The plugin's Supertext client on top of the Supertext SDK: sends the SDK's requests with `requests` (`RequestsTransport`), maps SDK error codes to translatable messages (`SupertextError`). No Django imports; the session and `sleep` are injectable for tests. |
-| `_vendor/supertext/` | The [Supertext Python SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/python`), copied by `scripts/sync-sdk.sh` until it is on PyPI; see *Supertext SDK* |
+| `_vendor/supertext/` | The [Supertext Python SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/python`), the package's own copy, made by `scripts/vendor-sdk.sh`; see *Supertext SDK* |
 | `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT`; Wagtail language code → Supertext code (`de-ch` → `de-CH`) and tone |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
 | `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), language table, *Test connection* |
@@ -56,15 +56,15 @@ Auth header: `Authorization: Supertext-Auth-Key <key>`; a pasted `Supertext-Auth
 
 ### Supertext SDK
 
-`wagtail_supertext/_vendor/supertext` is a copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins; `SOURCE` names its version and commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
+`wagtail_supertext/_vendor/supertext` is the package's own copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins: a private subpackage, so sites install nothing besides this package and an installed `supertext-sdk` can never clash with it. `COMMIT` names the SDK commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
 
 ```bash
-scripts/sync-sdk.sh                  # latest main of the SDK repository
-scripts/sync-sdk.sh v0.2.0           # a tag or commit
-SDK_DIR=../Supertext-API-SDK-and-Guide scripts/sync-sdk.sh   # a local checkout
+scripts/vendor-sdk.sh                  # latest main of the SDK repository
+scripts/vendor-sdk.sh v0.2.0           # a tag or commit
+SDK_DIR=../Supertext-API-SDK-and-Guide scripts/vendor-sdk.sh   # a local checkout
 ```
 
-Then run `pytest` and note the SDK version in `CHANGELOG.md`. Once the SDK is on PyPI, `supertext-sdk` becomes a normal dependency, `client.py` imports `supertext` instead and `_vendor/` and the script go away.
+Then run `pytest` and note the SDK version in `CHANGELOG.md`. This stays so after the SDK is on PyPI.
 
 How the plugin uses it: `SupertextClient.translate_strings()` packs the strings with the SDK's `html_document` and `plan_batches` and translates each document with `Client.translate_html()`. A string Supertext returns nothing for is left untranslated (wagtail-localize keeps it for the editor) instead of failing the whole page. Errors: the SDK's `SupertextError.code` (`authentication_failure`, `invalid_language_pair`, `quota_exceeded`, `timeout`, …) selects a message in `client.MESSAGES`, translated in the admin; the API's own text is shown as detail. The API key never appears in messages.
 

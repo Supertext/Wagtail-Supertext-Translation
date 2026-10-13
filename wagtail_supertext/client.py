@@ -1,7 +1,7 @@
 """
 The plugin's access to the Supertext AI file translation API (v1), built on the shared
 Supertext Python SDK (``wagtail_supertext/_vendor/supertext``, copied by
-``scripts/sync-sdk.sh`` until it is on PyPI). The SDK does the protocol:
+``scripts/vendor-sdk.sh``; sites install nothing else). The SDK does the protocol:
 
 1. ``POST translate/ai/file``                 multipart HTML upload -> ``{"file_id": …}``
 2. ``GET translate/ai/file/{id}/status``      poll until ``done``
