@@ -20,12 +20,20 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Sequence
-from pathlib import Path
 
 import requests
 
-from ._vendor import supertext as sdk
-from ._vendor.supertext import ErrorCode, HttpRequest, HttpResponse, Segment, html_document, plan_batches
+from ._vendor.supertext import SDK_VERSION
+from ._vendor.supertext import v1 as sdk
+from ._vendor.supertext.v1 import (
+    ErrorCode,
+    HttpRequest,
+    HttpResponse,
+    Languages,
+    Segment,
+    html_document,
+    plan_batches,
+)
 
 LIVE = sdk.LIVE_BASE_URL
 ENVIRONMENTS = {
@@ -40,8 +48,7 @@ API_KEY_URL = "https://www.supertext.com/en/integrations/api"
 #: Stay well below the API's 1,000,000 character limit per document.
 MAX_DOCUMENT_CHARACTERS = sdk.DEFAULT_MAX_CHARACTERS
 
-#: Version of the vendored SDK (the copy isn't an installed distribution).
-SDK_VERSION = (Path(__file__).parent / "_vendor" / "supertext" / "VERSION").read_text(encoding="utf-8").strip()
+__all__ = ["SDK_VERSION", "Languages", "SupertextClient", "SupertextError"]
 
 
 def gettext_noop(message: str) -> str:
@@ -62,7 +69,15 @@ MESSAGES: dict[str, str] = {
         "Generate a new API key at %(api_key_url)s (requires the Admin role)."
     ),
     ErrorCode.INVALID_LANGUAGE_PAIR: gettext_noop(
-        "Supertext does not support this language pair. Check the language codes in the LANGUAGES option."
+        "Supertext does not support this language pair. Check the language mapping (the LANGUAGES option)."
+    ),
+    ErrorCode.UNSUPPORTED_LANGUAGE: gettext_noop(
+        "The language %(language)s has no Supertext language yet. Ask your administrator to map it "
+        "(the LANGUAGES option, e.g. {'de': {'code': 'de-CH'}})."
+    ),
+    ErrorCode.UNSUPPORTED_FEATURE: gettext_noop(
+        "Supertext offers no formal or informal tone for this language. Set it to the default tone "
+        "(remove politeness from the LANGUAGES option)."
     ),
     ErrorCode.NOT_FOUND: gettext_noop("The requested Supertext resource was not found."),
     ErrorCode.PAYLOAD_TOO_LARGE: gettext_noop("The content is too large for Supertext to translate in one go."),
@@ -105,7 +120,9 @@ class SupertextError(Exception):
             params = {"code": error.status}
         elif error.code == ErrorCode.TRANSPORT_ERROR:
             params, detail = {"error": detail or "?"}, ""
-        if error.code == ErrorCode.INVALID_LANGUAGE_PAIR and (error.source_lang or error.target_lang):
+        elif error.code == ErrorCode.UNSUPPORTED_LANGUAGE:
+            params, detail = {"language": error.target_lang or error.source_lang or "?"}, ""
+        if error.code in (ErrorCode.INVALID_LANGUAGE_PAIR, ErrorCode.UNSUPPORTED_FEATURE) and (error.source_lang or error.target_lang):
             detail = f"{error.source_lang or '?'} → {error.target_lang or '?'}"
         message = MESSAGES.get(error.code, error.message)
         return cls(message, error.status, params=params, detail=detail, code=error.code)
@@ -155,14 +172,15 @@ class SupertextClient:
 
         self.api_key = normalize_key(api_key)
         self.base_url = (base_url or LIVE).rstrip("/") + "/"
-        self.sdk = sdk.Client(
+        self.transport = RequestsTransport(session or requests.Session())
+        self.sdk = sdk.SupertextClient(
             self.api_key,
             base_url=self.base_url,
             poll_interval=poll_interval,
             timeout=poll_timeout,
             request_timeout=request_timeout,
             user_agent=f"wagtail-supertext-translation/{__version__}",
-            transport=RequestsTransport(session or requests.Session()),
+            transport=self.transport,
             sleep=sleep,
         )
 
@@ -173,8 +191,8 @@ class SupertextClient:
     def translate_document(self, html: str, target_language: str, source_language: str = "", politeness: str = "default") -> str:
         """Translates a complete HTML document and returns the translated HTML.
 
-        Language codes may be in any form: the target is sent with a region (``de`` -> ``de-DE``),
-        the source as the bare language (empty: auto-detect); ``politeness`` is default, more or less.
+        The codes are sent as given: Supertext codes, resolved by ``conf.Options`` (``de-CH``,
+        ``es``; source ``en``, empty: auto-detect); ``politeness`` is default, more or less.
         """
         try:
             return self.sdk.translate_html(html, target_language, source_language or None, politeness)  # type: ignore[arg-type]

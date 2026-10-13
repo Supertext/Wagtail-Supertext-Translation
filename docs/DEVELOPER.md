@@ -24,13 +24,16 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 
 | Module | Responsibility |
 | --- | --- |
-| `translator.py` | `SupertextTranslator(BaseMachineTranslator)`: `display_name = "Supertext"`, `can_translate()` (source and target Supertext codes differ), `translate()` |
+| `translator.py` | `SupertextTranslator(BaseMachineTranslator)`: `display_name = "Supertext"`, `can_translate()` (source and target are different languages; an unmapped locale keeps the button so the editor gets the message), `translate()` (refuses politeness for a target without it, runs the reporter after the translation) |
 | `client.py` | The plugin's Supertext client on top of the Supertext SDK: sends the SDK's requests with `requests` (`RequestsTransport`), maps SDK error codes to translatable messages (`SupertextError`). No Django imports; the session and `sleep` are injectable for tests. |
 | `_vendor/supertext/` | The [Supertext Python SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/python`), the package's own copy, made by `scripts/vendor-sdk.sh`; see *Supertext SDK* |
-| `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT`; Wagtail language code → Supertext code (`de-ch` → `de-CH`) and tone |
+| `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT` / `SUPERTEXT_VERSION_REPORTS`; Wagtail language code → Supertext code (the SDK's `Languages`, see *Language codes*) and tone |
+| `reporting.py` | Commando Center: version reports, the API key check and the ping answer (the SDK's `InstallationReporter`, `ping_response`), site URL, state storage, the key-check messages |
+| `models.py`, `migrations/` | `SupertextState`: one row `reporter` with the reporter's JSON state |
+| `urls.py` | Public URLs, included by the site's `urls.py`: `GET /supertext/ping` |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
-| `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), language table, *Test connection* |
-| `management/commands/supertext_check.py` | `python manage.py supertext_check` |
+| `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), latest API key check, *Test connection*, the version-reports setting and ping URL, language table with *Not mapped* and tone warnings; `views.ping` (public) |
+| `management/commands/supertext_check.py` | `python manage.py supertext_check`: key check (`test_connection`) and a `check` report (`report_check`) |
 | `locale/{de,fr,it}/` | German, French and Italian admin strings (`django.po` and compiled `django.mo`) |
 
 ### Strings and markup
@@ -45,7 +48,7 @@ wagtail-localize hands over `StringValue`s: inline HTML fragments, one per parag
 
 Shared with the WordPress plugin and every other Supertext plugin, and implemented by the Supertext SDK:
 
-1. `POST {base}translate/ai/file`: multipart with `file` (part `Content-Type` exactly `text/html`, no charset, or the API answers 415), `target_lang` (regional, e.g. `de-CH`), optional `source_lang` (bare language, e.g. `en`, or the pair is rejected), optional `politeness` (`more`/`less`). Returns `{file_id}`.
+1. `POST {base}translate/ai/file`: multipart with `file` (part `Content-Type` exactly `text/html`, no charset, or the API answers 415), `target_lang` (one of Supertext's exact target codes, e.g. `de-CH`, `es`; see *Language codes*), optional `source_lang` (bare language, e.g. `en`, or the pair is rejected), optional `politeness` (`more`/`less`). Returns `{file_id}`.
 2. `GET …/{file_id}/status` until `done` (`error`, `limit_exceeded`, `deleted` are terminal).
 3. `GET …/{file_id}/translation` returns the translated HTML.
 4. `DELETE …/{file_id}`, also after errors (files also expire after 24 h).
@@ -64,19 +67,31 @@ scripts/vendor-sdk.sh <commit-or-branch>
 SDK_DIR=/path/to/clone scripts/vendor-sdk.sh   # a local clone as it is
 ```
 
-Then run `pytest` and note the SDK version in `CHANGELOG.md`. This stays so after the SDK is on PyPI.
+The script copies the whole package with its subpackages (`supertext/__init__.py`, `transport.py`, `version.py` and `v1/`); the plugin imports the API from `_vendor.supertext.v1` (SDK 0.2.0+). Then run `pytest` and note the SDK version in `CHANGELOG.md`. This stays so after the SDK is on PyPI.
 
 How the plugin uses it: `SupertextClient.translate_strings()` packs the strings with the SDK's `html_document` and `plan_batches` and translates each document with `Client.translate_html()`. A string Supertext returns nothing for is left untranslated (wagtail-localize keeps it for the editor) instead of failing the whole page. Errors: the SDK's `SupertextError.code` (`authentication_failure`, `invalid_language_pair`, `quota_exceeded`, `timeout`, …) selects a message in `client.MESSAGES`, translated in the admin; the API's own text is shown as detail. The API key never appears in messages.
 
 ## Language codes
 
-Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `conf.py` turns Wagtail language codes into Supertext codes:
+Supertext accepts exactly the codes its `GET features` lists (the SDK's `Languages`, from the live API, October 2026): bare sources (`en`, `de`); targets in one exact form each, regional for German, English, French, Italian and Portuguese (`de-CH`, `en-US`, `pt-BR`), with a script for Chinese and Serbian (`zh-Hans`, `sr-Latn`), a dialect for Swiss German (`gsw-u-sd-chzh`), bare for the others (`es`, `nl`, `sl`). Anything else is HTTP 404 `INVALID_LANGUAGE_PAIR`; formal/informal for a target without it (`en-US`, `rm`, …) is HTTP 400 `FEATURE_ERROR` (`unsupported_feature`). The SDK sends codes as given. `conf.py` resolves Wagtail codes **without guessing**:
 
-- **Target** (`Options.target_code`): the `LANGUAGES` → `code` override if set, else the Wagtail code. It is normalized (`de_ch`/`de-ch` → `de-CH`, `zh-hant` → `zh-Hant`, `es-419` stays, variants and extensions are dropped: `de_DE_formal` → `de-DE`); a code without region gets a default region (`regional()`, the SDK's `language_codes.target()` and `DEFAULT_REGIONS`: de-DE, en-US, fr-FR, it-IT, pt-PT, zh-CN, …; the same table in every Supertext plugin). Unknown bare codes are sent unchanged, so Supertext's error names them.
-- **Source** (`Options.source_code`): the bare language of the source's target code (`en-us` → `en`; an override's language wins). The client also strips any region before sending.
-- Translating within one language (`en` → `en-GB`) is allowed.
+- **Target** (`Options.target_code`): `Languages.target(code, mapping)`. The mapping is the `code` entries of `LANGUAGES` (sent as they are); else a Wagtail code that equals a Supertext code apart from case and `_`/`-` (`de-ch` → `de-CH`, `es`); else `SupertextError` `unsupported_language` with the Wagtail code (`%(language)s` in the message), and nothing is sent. No default regions: `de` must be mapped (to `de-DE`, `de-CH` or `de-AT`). `target_code_or_none` is for *Settings → Supertext* (*Not mapped*).
+- **Source** (`Options.source_code`): `Languages.source()` of the mapping or the code: its exact or first subtag (`en-us` → `en`, a source mapped to `de-CH` → `de`), else `unsupported_language`.
+- **Tone:** `politeness` is sent only where `Languages.supports_politeness(target)` isn't `False`; where it is, `translate()` raises `unsupported_feature` before any request (the setting isn't dropped silently), and the settings page warns.
+- `can_translate()` is false only when source and target are the same language; an unmapped locale keeps the button, so the editor sees why.
 
-`tests/fake.py` and `tests/docs/stand-in.mjs` reject targets without region like the live API, so a regression fails the tests.
+`tests/fake.py` and `tests/docs/stand-in.mjs` accept exactly the SDK's target codes (404 `INVALID_LANGUAGE_PAIR` otherwise) and reject politeness where it isn't offered, like the live API.
+
+## Commando Center: version reports, key check, ping
+
+Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `docs/DEVELOPER.md` → *Report protocol*. The SDK's `InstallationReporter`, `check_api_key()`, `reports_enabled()`, `reporter_state()` and `ping_response()` implement it; `reporting.py` only supplies what Wagtail knows:
+
+- **Setting:** `VERSION_REPORTS` in the translator's `OPTIONS` (default on), `SUPERTEXT_VERSION_REPORTS` (0/1) wins (`Options.reports_enabled` → `reports_enabled()`). Off: no reports, ping 404. `SUPERTEXT_REPORT_URL` sends reports elsewhere (tests, the stand-in).
+- **Report fields:** `site_url` = `WAGTAILADMIN_BASE_URL` (absolute), else the request's scheme and host, else the default `Site`'s `root_url`; plugin `Wagtail-Supertext-Translation` with `wagtail_supertext.__version__`; system `Wagtail` with `wagtail.__version__`; runtime Python (the SDK's default); `sdk_version` from the bundled SDK; `callback.url` = site URL + `reverse("wagtail_supertext_ping")`, left out when the site's `urls.py` doesn't include `wagtail_supertext.urls`. The key check and reports go through `RequestsTransport` (proxies, certificates).
+- **When:** settings live in Django settings, so there is no `settings_saved`. `on_request` runs in a background thread on *Settings → Supertext* (GET) and after every translation (reports `installed`, `upgraded` or `api_key_check`; checks the key only when its fingerprint changed); *Test connection* runs `test_connection` and waits for it; a translation that gets 401/403 runs `authentication_failed`; `supertext_check` runs `test_connection`, then `report_check`. Calls are serialized per process (a lock); nothing here ever raises into a request or a translation (storage errors are caught too, logged at debug level).
+- **State:** `SupertextState(key="reporter")`, the reporter's camelCase JSON (`ReporterState.to_json()`), read back with `reporter_state()` (broken → empty). Only a fingerprint of the key.
+- **Ping:** `views.ping` (`GET /supertext/ping`, `require_GET`, no login, no session or CSRF): status, headers (`Content-Type: application/json`, `Cache-Control: no-store`) and body exactly as `ping_response()` returns them; `request._cache_update_cache = False` keeps Django's cache middleware from storing it.
+- **Messages:** `reporting.check_message()` has the center's key-check texts (en/de/fr/it via the `.po` files), with the account and API key links (new tab) for `invalid` and `missing`.
 
 ## Local development
 
@@ -99,13 +114,14 @@ pytest
 ```
 
 - `tests/test_client.py`: the plugin's client on the SDK through a fake `requests` session: the API protocol, auth header and prefix, 429 retries, errors and their messages, clean-up, many strings in one document. The SDK's own tests and conformance scenarios run in the SDK repository.
-- `tests/test_document.py`: language codes, environment variables.
-- `tests/test_translator.py`: wagtail-localize end to end on SQLite: a page with rich text, a link and StreamField blocks is submitted, machine-translated through a fake API session and published; checks markup, link, slug, politeness, "nothing left to translate", errors as editor messages, and the settings page.
+- `tests/test_document.py`: language mapping and exact codes, unmapped languages (no guessing), tone support, environment variables, the version-reports setting.
+- `tests/test_reporting.py`: one `installed` report from *Settings → Supertext* (fields, callback URL, never the key), nothing more when nothing changed, `upgraded`, *Test connection* with a rejected key (message with links), reports off (nothing sent, key still checked, ping 404), the `VERSION_REPORTS` option, an unreachable center (no retry within the hour), storage failures, the ping answers, a 401/403 reported once, `supertext_check`, the site URL. `tests/conftest.py` sends every report and key check to `tests.fake.FakeTransport` (never the live center or API) in the same thread.
+- `tests/test_translator.py`: wagtail-localize end to end on SQLite: a page with rich text, a link and StreamField blocks is submitted, machine-translated through a fake API session and published; checks markup, link, slug, politeness, "nothing left to translate", errors as editor messages, the settings page, unmapped locales (nothing sent), politeness for a target without it, and a rejected key reported to the (fake) center.
 
 CI (`.github/workflows/ci.yml`) on every push and pull request:
 
 - **test**: the suite on Python 3.11 with Wagtail 7.0 and Django 5.2, 3.12 with Wagtail 7.4 and Django 5.2, and 3.13 with Wagtail 8.0 and Django 6.1.
-- **demo**: installs the demo, runs migrations and `demo_setup` twice against PostgreSQL, `supertext_check`, then translates the home page and the sample article into German through the stand-in API and checks the title, slug and markup.
+- **demo**: installs the demo, runs migrations and `demo_setup` twice against PostgreSQL, `supertext_check`, checks the `installed` and `check` reports the stand-in center received (plugin name, ping URL, no key) and the ping endpoint, then translates the home page and the sample article into German through the stand-in API and checks the title, slug and markup.
 
 ## Demo (Railway)
 
@@ -136,6 +152,7 @@ The public demo is a container built from `demo/Dockerfile`: Wagtail 8 with wagt
 | `DEMO_EDITOR_EMAIL`, `DEMO_EDITOR_PASSWORD` | Optional second account for automated tests and screenshots: in Wagtail's **Moderators** group (edit and publish pages), which `demo_setup` also gives wagtail-localize's *Can submit translation* |
 | `SUPERTEXT_API_KEY` | Supertext key used by the translator |
 | `SUPERTEXT_API_ENDPOINT` | Optional, e.g. the staging API |
+| `SUPERTEXT_VERSION_REPORTS` | Optional; `0` turns version reports off (default on) |
 | `PORT` | Port gunicorn listens on (Railway sets it) |
 
 Railway also sets `RAILWAY_PUBLIC_DOMAIN`, which the settings use for `WAGTAILADMIN_BASE_URL` and `CSRF_TRUSTED_ORIGINS`.
@@ -161,11 +178,13 @@ cd tests/docs && npm install && npx playwright install chromium
 npm run stand-in &
 # a fresh demo database (migrate + demo_setup with DEMO_* set), served with
 # SUPERTEXT_API_KEY=anything SUPERTEXT_API_ENDPOINT=http://127.0.0.1:8765/v1/
+# SUPERTEXT_REPORT_URL=http://127.0.0.1:8765/report (reports go to the stand-in, never the live center)
+# WAGTAILADMIN_BASE_URL=https://wagtail-production-b129.up.railway.app (the ping URL shown is the live demo's)
 BASE_URL=http://127.0.0.1:8000 DEMO_ADMIN_EMAIL=… DEMO_ADMIN_PASSWORD=… \
   DEMO_EDITOR_EMAIL=… DEMO_EDITOR_PASSWORD=… npm run screenshots
 ```
 
-On *Settings → Supertext* the script replaces the stand-in's local address with the live API address before taking the picture.
+On *Settings → Supertext* the script replaces the stand-in's local address with the live API address before taking the picture, and makes the window as tall as the page (Wagtail scrolls inside `<main>`). The stand-in also answers `POST /report` (202) and lists the reports on `GET /report`.
 
 ## Code quality and security checks
 
@@ -190,6 +209,7 @@ Publishing to PyPI (`python -m build && twine upload dist/*`) is planned.
 
 - Black-compatible formatting, type hints in new code.
 - User-visible admin strings via Django's gettext, translated in `wagtail_supertext/locale/{de,fr,it}/LC_MESSAGES/django.po` (English is the source). New or changed strings need all four languages in the same commit; recompile the `.mo` files with polib (see `CLAUDE.md`). `client.py` has no Django imports, so it marks its error messages with a local `gettext_noop` and keeps `template`/`params` on `SupertextError`; `errors.localized()` translates them in the admin. `tests/test_locale.py` checks that every marked string is in each catalog, placeholders match and the `.mo` files are current.
+- Model changes need a migration in `wagtail_supertext/migrations` committed with the change (`python -m django makemigrations wagtail_supertext --settings=tests.settings`).
 - Keep the three docs in `docs/` current with every change (see `CLAUDE.md`).
 
 ## Known limitations / roadmap

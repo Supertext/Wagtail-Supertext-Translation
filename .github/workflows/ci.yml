@@ -42,6 +42,7 @@ jobs:
       DEMO_EDITOR_PASSWORD: ci-editor-password-1
       SUPERTEXT_API_KEY: Supertext-Auth-Key ci-key
       SUPERTEXT_API_ENDPOINT: http://127.0.0.1:8765/v1/
+      SUPERTEXT_REPORT_URL: http://127.0.0.1:8765/report
     services:
       postgres:
         image: postgres:16
@@ -70,6 +71,24 @@ jobs:
           python manage.py demo_setup
           python manage.py demo_setup | grep -c "left unchanged" | grep -q 2
           python manage.py supertext_check
+      - name: Version report and ping endpoint (stand-in center)
+        working-directory: demo
+        run: |
+          reports=$(curl -sf http://127.0.0.1:8765/report)
+          echo "$reports"
+          grep -q '"event":"installed"' <<< "$reports"
+          grep -q '"event":"check"' <<< "$reports"
+          grep -q '"name":"Wagtail-Supertext-Translation"' <<< "$reports"
+          grep -q '"url":"http://localhost:8000/supertext/ping"' <<< "$reports"
+          if grep -qF ci-key <<< "$reports"; then echo "API key in a report"; exit 1; fi
+          python manage.py shell -c "
+          import json
+          from django.test import Client
+          r = Client().get('/supertext/ping?challenge=abcdefghijklmnop0123')
+          assert r.status_code == 200 and r['Cache-Control'] == 'no-store', r
+          assert json.loads(r.content) == {'ok': True, 'plugin': 'Wagtail-Supertext-Translation', 'challenge': 'abcdefghijklmnop0123'}
+          assert Client().get('/supertext/ping?challenge=bad').status_code == 400
+          "
       - name: Translate the sample article into German
         working-directory: demo
         run: |

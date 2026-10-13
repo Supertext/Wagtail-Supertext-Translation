@@ -7,8 +7,8 @@ Open a page, choose **Translate this page**, pick the languages, and click **Tra
 - A wagtail-localize machine translator: no new screens for editors to learn
 - Whole paragraphs go to Supertext with their bold, italic and link markup, so sentences translate naturally
 - Translated page slugs, so translated pages get translated URLs
-- Formal or informal tone and custom Supertext language codes per locale
-- *Settings → Supertext* in the admin shows the configuration and tests the API key
+- Formal or informal tone and a Supertext language per locale (exact Supertext codes, nothing guessed)
+- *Settings → Supertext* in the admin shows the configuration, the latest API key check and which locales still need a Supertext language
 
 ![The wagtail-localize translation editor with the Translate with Supertext button](docs/images/translation-editor.png)
 
@@ -29,7 +29,11 @@ WAGTAILLOCALIZE_MACHINE_TRANSLATOR = {
     "CLASS": "wagtail_supertext.SupertextTranslator",
     "OPTIONS": {"API_KEY": os.environ["SUPERTEXT_API_KEY"]},
 }
+# urls.py, before wagtail_urls: the public ping endpoint for Supertext's version check
+path("supertext/", include("wagtail_supertext.urls")),
 ```
+
+Then `python manage.py migrate`. The plugin sends its version information to Supertext (no content, no key, no personal data); see the [installation guide](docs/INSTALLATION.md#version-information-and-the-api-key-check) to turn it off.
 
 ## Demo
 

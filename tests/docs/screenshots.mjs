@@ -48,7 +48,15 @@ async function pageId(page, title) {
   await page.waitForLoadState('networkidle')
   // The docs run against a local stand-in API; show the endpoint users will see.
   await page.evaluate((live) => document.querySelectorAll('code').forEach((c) => { if (c.textContent.includes('127.0.0.1')) c.textContent = live }), LIVE_API)
-  await shot('settings-supertext', { x: 0, y: 0, width: 1280, height: 640 })
+  // The whole page: connection, API key check, version information and the languages table.
+  // Wagtail scrolls inside <main>, so make the window as tall as the page instead.
+  const height = await page.evaluate(() => {
+    const main = document.querySelector('main')
+    return Math.ceil(main.getBoundingClientRect().top + main.scrollHeight)
+  })
+  await page.setViewportSize({ width: 1280, height: Math.min(height, 1500) })
+  await shot('settings-supertext')
+  await page.setViewportSize({ width: 1280, height: 860 })
 
   await go('/admin/locales/')
   await shot('locales', { x: 0, y: 0, width: 1280, height: 420 })

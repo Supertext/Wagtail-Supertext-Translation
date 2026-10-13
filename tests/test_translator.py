@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from wagtail.models import Locale, Page
 from wagtail_localize.machine_translators import get_machine_translator
 from wagtail_localize.models import Translation, TranslationSource
+from wagtail_localize.strings import StringValue
 from wagtail_localize.views.edit_translation import apply_machine_translation
 
 from tests.fake import FakeSession
@@ -132,3 +133,54 @@ def test_status_page_shows_version(client):
         assert f'href="https://github.com/Supertext/Wagtail-Supertext-Translation/releases/tag/v{__version__}"' in html
     assert release_url("1.2.3").endswith("/releases/tag/v1.2.3")
     assert release_url("1.2.3.dev0") is None
+
+
+def test_unmapped_language_is_not_sent(fake, page, settings):
+    """A locale whose code isn't a Supertext code: a message, and nothing goes to Supertext."""
+    from wagtail_supertext.client import SupertextError
+    from wagtail_supertext.translator import SupertextTranslator
+
+    translator = SupertextTranslator({"API_KEY": "test-key"})
+    en, es = Locale.objects.get(language_code="en"), Locale(language_code="es-es")
+    assert translator.can_translate(en, es)  # the button stays, so the editor gets the message
+    with pytest.raises(SupertextError, match="The language es-es has no Supertext language yet") as info:
+        translator.translate(en, es, [StringValue.from_plaintext("Hello")])
+    assert info.value.code == "unsupported_language"
+    assert fake.calls == []
+
+    mapped = SupertextTranslator({"API_KEY": "test-key", "LANGUAGES": {"es-es": {"code": "es"}}})
+    out = mapped.translate(en, es, [StringValue.from_plaintext("Hello")])
+    assert fake.calls[0]["data"]["target_lang"] == "es"
+    assert list(out.values())[0].render_text() == "[es] Hello"
+
+
+def test_same_language_cannot_translate():
+    from wagtail_supertext.translator import SupertextTranslator
+
+    translator = SupertextTranslator({"API_KEY": "test-key"})
+    assert not translator.can_translate(Locale(language_code="de-ch"), Locale(language_code="de-ch"))
+    assert translator.can_translate(Locale(language_code="en"), Locale(language_code="de-ch"))
+
+
+def test_politeness_for_a_target_without_it_is_not_dropped(fake):
+    from wagtail_supertext.client import SupertextError
+    from wagtail_supertext.translator import SupertextTranslator
+
+    translator = SupertextTranslator({"API_KEY": "test-key", "LANGUAGES": {"en-us": {"politeness": "more"}}})
+    with pytest.raises(SupertextError, match="no formal or informal tone") as info:
+        translator.translate(Locale(language_code="de-ch"), Locale(language_code="en-us"), [StringValue.from_plaintext("Hallo")])
+    assert info.value.code == "unsupported_feature"
+    assert fake.calls == []
+
+
+def test_rejected_key_during_translation_is_reported(fake, page, center, monkeypatch):
+    from wagtail_supertext.client import SupertextError
+    from wagtail_supertext.translator import SupertextTranslator
+
+    translator = SupertextTranslator({"API_KEY": "wrong"})
+    monkeypatch.setattr(center, "key", "wrong")  # the key check would accept it; the translation is rejected
+    with pytest.raises(SupertextError) as info:
+        translator.translate(Locale.objects.get(language_code="en"), Locale.objects.get(language_code="de-ch"), [StringValue.from_plaintext("Hi")])
+    assert info.value.code == "authentication_failure"
+    assert center.reports[-1]["event"] in ("installed", "api_key_check")
+    assert center.reports[-1]["api_key_check"]["status"] == "invalid"

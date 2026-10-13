@@ -77,7 +77,7 @@ The user guide and installation guide of every plugin include screenshots of the
 
 AI file translation API v1, same as the WordPress plugin: POST HTML file → poll status → GET translation → DELETE. Details in `docs/DEVELOPER.md`. Never commit API keys; use the `SUPERTEXT_API_KEY` environment variable or the `API_KEY` option.
 
-Lessons from the live API, apply them here: header `Authorization: Supertext-Auth-Key <key>` (strip a pasted prefix), retry HTTP 429 (per-second rate limit), keep a whole text in one `data-st-id` element (each one is translated on its own), and send the source as a bare language (`en`) but the target as a regional code (`de-DE`, `en-US`): Supertext rejects bare targets (`INVALID_LANGUAGE_PAIR`), so bare CMS locales get a regional default (see `docs/DEVELOPER.md` → *Language codes*).
+Lessons from the live API, apply them here: header `Authorization: Supertext-Auth-Key <key>` (strip a pasted prefix), retry HTTP 429 (per-second rate limit), keep a whole text in one `data-st-id` element (each one is translated on its own), and **languages:** only the codes Supertext's `GET features` lists (the SDK's `Languages`, `_vendor.supertext.v1`): bare sources (`en`); targets regional only for de/en/fr/it/pt (`de-CH`, `en-US`), `zh-Hans`/`zh-Hant`, `sr-Latn`/`sr-Cyrl`, `gsw-u-sd-chzh`/`chbe`, bare for the rest (`es`, `nl`, `sl`). **No guessing:** the plugin's mapping (`LANGUAGES` → `code`), else an exact match, else the error `unsupported_language`. No default regions (see `docs/DEVELOPER.md` → *Language codes*).
 
 ## This repo
 
@@ -85,5 +85,6 @@ Lessons from the live API, apply them here: header `Authorization: Supertext-Aut
 - New options go in `wagtail_supertext/conf.py` **and** the settings table in `docs/INSTALLATION.md`.
 - Admin strings (including the error messages in `client.py`, marked with its own `gettext_noop`): update `wagtail_supertext/locale/{de,fr,it}/LC_MESSAGES/django.po` and recompile each `.mo`; `tests/test_locale.py` checks they are complete (`python -c "import polib; polib.pofile('…/django.po').save_as_mofile('…/django.mo')"`).
 - Keep `wagtail_supertext/client.py` free of Django imports (tested on its own).
+- Commando Center (version reports, key check, ping): `wagtail_supertext/reporting.py` on the SDK's `InstallationReporter`; state in the `SupertextState` model (changes need a migration); public `GET /supertext/ping` from `wagtail_supertext.urls`. Tests never reach the live center: `tests/conftest.py` patches the transport.
 - All Supertext API calls go through the Supertext Python SDK, shipped in `wagtail_supertext/_vendor/supertext` and wrapped by `client.py`. Never edit `_vendor/`: fix the SDK in `Supertext/Supertext-API-SDK-and-Guide` and run `scripts/vendor-sdk.sh`. Every SDK error code needs a message in `client.MESSAGES` (and the `.po` files).
 - `demo/` is the Railway demo (`railway.json` → `demo/Dockerfile`, context = repo root). Changing `demo/home/models.py` needs a migration (`cd demo && python manage.py makemigrations home`) committed with the change. Demo secrets live only in Railway variables.

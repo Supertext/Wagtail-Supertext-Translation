@@ -8,6 +8,8 @@ from wagtail.documents import urls as wagtaildocs_urls
 urlpatterns = [
     path("admin/", include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
+    # Public ping endpoint for the Supertext Commando Center (/supertext/ping)
+    path("supertext/", include("wagtail_supertext.urls")),
 ]
 
 if settings.DEBUG:

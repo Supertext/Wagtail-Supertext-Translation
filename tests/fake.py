@@ -7,6 +7,10 @@ from email.policy import HTTP
 
 import requests
 
+from wagtail_supertext.client import Languages
+
+TARGETS = {language.code for language in Languages.TARGETS}
+
 
 def parse_multipart(content_type, body):
     """multipart/form-data body -> (fields, files) like requests' data= and files= arguments."""
@@ -45,9 +49,11 @@ class FakeSession(requests.Session):
             return response(429, '{"error_code":"RATE_LIMIT_EXCEEDED"}')
         path = url.split("/v1/", 1)[1]
         if method == "POST" and path == "translate/ai/file":
-            if not re.match(r"^[a-z]{2,3}-([A-Z]{2}|[A-Z][a-z]{3}|\d{3})$", data.get("target_lang", "")):
-                # Like the live API: a target without region (e.g. "de") is not a valid pair.
-                return response(400, json.dumps({"error_code": "INVALID_LANGUAGE_PAIR", "source_lang": data.get("source_lang"), "target_lang": data.get("target_lang")}))
+            if data.get("target_lang") not in TARGETS:
+                # Like the live API: only its exact codes ("de-CH", "es"); "de" or "es-ES" is not a pair it offers.
+                return response(404, json.dumps({"error_code": "INVALID_LANGUAGE_PAIR", "source_lang": data.get("source_lang"), "target_lang": data.get("target_lang")}))
+            if data.get("politeness") and not Languages.supports_politeness(data["target_lang"]):
+                return response(400, json.dumps({"error_code": "FEATURE_ERROR", "feature": "politeness", "target_lang": data.get("target_lang")}))
             name, content, content_type = files["file"]
             file_id = f"f{len(self.files) + 1}"
             self.files[file_id] = {"html": content.decode(), "target": data["target_lang"], "type": content_type, "polls": 0}
@@ -73,3 +79,33 @@ def response(status, text):
     r._content = text.encode()
     r.encoding = "utf-8"
     return r
+
+
+class FakeTransport:
+    """The SDK transport for the version reporter: the Commando Center (POST …/report → 202) and
+    Supertext's GET features (the key check), recording every request."""
+
+    def __init__(self, *, key="test-key", center_status=202, features_status=None):
+        self.key = key
+        self.center_status = center_status
+        self.features_status = features_status
+        self.requests = []
+
+    @property
+    def reports(self):
+        return [json.loads(r.body) for r in self.requests if r.method == "POST" and r.url.endswith("/report")]
+
+    def __call__(self, request):
+        from wagtail_supertext.client import HttpResponse
+
+        self.requests.append(request)
+        if request.method == "POST" and request.url.endswith("/report"):
+            if self.center_status is None:
+                raise OSError("center unreachable")
+            return HttpResponse(self.center_status, b'{"ok":true}', {})
+        if request.url.endswith("/features"):
+            if self.features_status:
+                return HttpResponse(self.features_status, b"{}", {})
+            ok = dict(request.headers).get("Authorization") == f"Supertext-Auth-Key {self.key}"
+            return HttpResponse(200 if ok else 401, b"{}" if ok else b'{"error_code":"UNAUTHORIZED"}', {})
+        return HttpResponse(404, b"{}", {})

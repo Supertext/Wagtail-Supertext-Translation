@@ -24,6 +24,15 @@
       <dd><code>{{ options.base_url }}</code></dd>
       <dt>{% trans "Plugin version" %}</dt>
       <dd>{% if version_url %}<a href="{{ version_url }}" target="_blank" rel="noopener">{{ version }}</a>{% else %}{{ version }}{% endif %}</dd>
+      <dt>{% trans "API key check" %}</dt>
+      <dd>
+        {% if check %}
+          <span class="supertext-check supertext-check--{% if check.status == "ok" %}ok{% else %}fail{% endif %}">{{ check_message }}</span>
+          {% if check_time %}<p class="help">{% with time=check_time|date:"DATETIME_FORMAT" %}{% blocktrans trimmed %}Checked on {{ time }}{% endblocktrans %}{% endwith %}</p>{% endif %}
+        {% else %}
+          {% trans "Not checked yet. Use Test connection." %}
+        {% endif %}
+      </dd>
     </dl>
     <form method="post">
       {% csrf_token %}
@@ -31,9 +40,20 @@
     </form>
   </section>
 
+  <section class="w-mb-8">
+    <h2 class="w-h3">{% trans "Send version information to Supertext" %}</h2>
+    <p><strong>{% if reports_enabled %}{% trans "On" %}{% else %}{% trans "Off" %}{% endif %}</strong>
+      {% if reports_source == "environment" %}({% trans "SUPERTEXT_VERSION_REPORTS environment variable" %}){% elif reports_source == "settings" %}({% trans "VERSION_REPORTS option" %}){% endif %}</p>
+    <p class="help">{% trans "Sends the site URL and the versions of this plugin, the CMS and the runtime to Supertext when you save these settings and after an update, so Supertext support can see which version you run. No content, no API key and no personal data are sent." %}</p>
+    <p class="help">{% blocktrans trimmed %}Turn it off with <code>"VERSION_REPORTS": False</code> in the <code>OPTIONS</code> or the environment variable <code>SUPERTEXT_VERSION_REPORTS=0</code>.{% endblocktrans %}</p>
+    {% if reports_enabled %}
+      <p class="help">{% if ping_url %}{% trans "Ping endpoint:" %} <code>{{ ping_url }}</code>{% else %}{% blocktrans trimmed %}The ping endpoint isn't installed: add <code>path("supertext/", include("wagtail_supertext.urls"))</code> to your <code>urls.py</code> (see the installation guide).{% endblocktrans %}{% endif %}</p>
+    {% endif %}
+  </section>
+
   <section>
     <h2 class="w-h3">{% trans "Languages" %}</h2>
-    <p class="help">{% blocktrans trimmed %}Each target locale is sent to Supertext with this language code and tone. Change them with the <code>LANGUAGES</code> option.{% endblocktrans %}</p>
+    <p class="help">{% blocktrans trimmed %}Each target locale is sent to Supertext with this language code and tone. A locale whose code isn't a Supertext code needs a mapping: set <code>code</code> in the <code>LANGUAGES</code> option (see the installation guide).{% endblocktrans %}</p>
     <table class="listing">
       <thead>
         <tr><th>{% trans "Locale" %}</th><th>{% trans "Supertext language" %}</th><th>{% trans "Tone" %}</th></tr>
@@ -42,8 +62,8 @@
         {% for locale in locales %}
           <tr>
             <td>{{ locale.name }} <code>{{ locale.code }}</code></td>
-            <td>{% if locale.is_source %}{% trans "Source language" %}{% else %}<code>{{ locale.target }}</code>{% endif %}</td>
-            <td>{% if locale.is_source %}–{% elif locale.politeness == "more" %}{% trans "Formal (Sie, vous)" %}{% elif locale.politeness == "less" %}{% trans "Informal (du, tu)" %}{% else %}{% trans "Default" %}{% endif %}</td>
+            <td>{% if locale.is_source %}{% trans "Source language" %}{% elif locale.target %}<code>{{ locale.target }}</code>{% else %}<span class="supertext-check supertext-check--fail">{% trans "Not mapped: set code in the LANGUAGES option" %}</span>{% endif %}</td>
+            <td>{% if locale.is_source %}–{% elif locale.politeness == "more" %}{% trans "Formal (Sie, vous)" %}{% elif locale.politeness == "less" %}{% trans "Informal (du, tu)" %}{% else %}{% trans "Default" %}{% endif %}{% if not locale.is_source and locale.politeness != "default" and locale.politeness_supported is False %} <span class="supertext-check supertext-check--fail">· {% trans "Supertext offers no formal/informal choice for this language" %}</span>{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -55,5 +75,7 @@
     .supertext-config dt { font-weight: 600; }
     .supertext-config dd { margin: 0; }
     .supertext-config dd .help { margin: .25rem 0 0; }
+    .supertext-check--ok { color: var(--w-color-text-success, #1b7f4c); }
+    .supertext-check--fail { color: var(--w-color-text-error, #cd4444); }
   </style>
 {% endblock %}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copies the Supertext Python SDK into PKG/_vendor/supertext (import it as
-# PKG._vendor.supertext). Source: https://github.com/Supertext/Supertext-API-SDK-and-Guide
+# PKG._vendor.supertext; the API lives in its v1 subpackage). Source: https://github.com/Supertext/Supertext-API-SDK-and-Guide
 # (sdk/python).
 #
 #   scripts/vendor-sdk.sh [commit-or-branch]        (default: main)
@@ -26,7 +26,12 @@ version="$(sed -n 's/^version = "\(.*\)"$/\1/p' "$src/sdk/python/pyproject.toml"
 dest="$pkg/_vendor/supertext"
 rm -rf "$dest"
 mkdir -p "$dest"
-cp "$src"/sdk/python/src/supertext/*.py "$src/sdk/python/src/supertext/py.typed" "$dest/"
+# The package with its subpackages (v1, later v2, …); no caches.
+(cd "$src/sdk/python/src/supertext" && find . -name '__pycache__' -prune -o \( -name '*.py' -o -name 'py.typed' \) -print) |
+  while read -r file; do
+    mkdir -p "$dest/$(dirname "$file")"
+    cp "$src/sdk/python/src/supertext/$file" "$dest/$file"
+  done
 cp "$src/sdk/python/LICENSE" "$dest/LICENSE"
 [ -f "$pkg/_vendor/__init__.py" ] || printf '"""Third-party code shipped with this package (see each folder\x27s SOURCE)."""\n' > "$pkg/_vendor/__init__.py"
 printf '%s\n' "$commit" > "$dest/COMMIT"
