@@ -117,7 +117,7 @@ def error_for_response(status: int, body: str) -> SupertextError:
 
     api_error_code = text("error_code")
     source_lang = target_lang = None
-    if status == 400 and (api_error_code == "INVALID_LANGUAGE_PAIR" or "INVALID_LANGUAGE_PAIR" in body):
+    if status in (400, 404) and (api_error_code == "INVALID_LANGUAGE_PAIR" or "INVALID_LANGUAGE_PAIR" in body):
         code = ErrorCode.INVALID_LANGUAGE_PAIR
         source_lang, target_lang = text("source_lang"), text("target_lang")
     elif status in (401, 403):

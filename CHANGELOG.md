@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
-- Changed: the connection to Supertext now uses the shared [Supertext SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (Python SDK 0.1.0, shipped inside the package, so nothing else needs installing), still through `requests`. Translation works as before; an unsupported language pair now has its own message (*Supertext does not support this language pair*) in English, German, French and Italian. The package no longer needs BeautifulSoup.
+- Changed: the connection to Supertext now uses the shared [Supertext SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (Python SDK 0.1.0, shipped inside the package, so nothing else needs installing), still through `requests`. Translation works as before; an unsupported language pair now has its own message (*Supertext does not support this language pair*) in English, German, French and Italian. The package no longer needs BeautifulSoup. An unknown language (e.g. `xx-YY`) is now reported as an unsupported language pair too, not as "resource not found" (Supertext answers it with HTTP 404).
 - Added: French and Italian interface (and German where it was missing): *Settings → Supertext* and all Supertext error messages follow the user's admin language.
 - The "No Supertext API key" and "Authentication failed" messages now also link to Supertext account signup.
 - *Settings → Supertext* shows the plugin version, linked to its release notes on GitHub.
