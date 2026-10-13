@@ -12,21 +12,21 @@ Translation editor: "Translate with Supertext"
         │  apply_machine_translation(): every string of the page without a translation
         ▼
 SupertextTranslator.translate(source_locale, target_locale, strings)     translator.py
-        │  slugs → words; strings chunked below 900k characters
-        │  document.build()   one <div data-st-id="N"> per string
+        │  slugs → words
         ▼
-SupertextClient.translate_document()     POST file → poll → GET → DELETE   client.py
-        │
+SupertextClient.translate_strings()      client.py, on the Supertext SDK:
+        │  one <div data-st-id="N"> per string, documents below 900k characters,
+        │  POST file → poll → GET → DELETE
         ▼
-document.parse() → StringValue.from_translated_html() → wagtail-localize stores
+translated inner HTML per string → StringValue.from_translated_html() → wagtail-localize stores
 StringTranslation rows (tool name "Supertext"), the editor reviews and publishes.
 ```
 
 | Module | Responsibility |
 | --- | --- |
 | `translator.py` | `SupertextTranslator(BaseMachineTranslator)`: `display_name = "Supertext"`, `can_translate()` (source and target Supertext codes differ), `translate()` |
-| `client.py` | Supertext AI file translation API v1 with `requests`. No Django imports; the session and `sleep` are injectable for tests. |
-| `document.py` | Builds/parses the HTML document (BeautifulSoup), chunking |
+| `client.py` | The plugin's Supertext client on top of the Supertext SDK: sends the SDK's requests with `requests` (`RequestsTransport`), maps SDK error codes to translatable messages (`SupertextError`). No Django imports; the session and `sleep` are injectable for tests. |
+| `_vendor/supertext/` | The [Supertext Python SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/python`), copied by `scripts/sync-sdk.sh` until it is on PyPI; see *Supertext SDK* |
 | `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT`; Wagtail language code → Supertext code (`de-ch` → `de-CH`) and tone |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
 | `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), language table, *Test connection* |
@@ -43,22 +43,36 @@ wagtail-localize hands over `StringValue`s: inline HTML fragments, one per parag
 
 ## Supertext API protocol
 
-Shared with the WordPress plugin and every other Supertext CMS plugin:
+Shared with the WordPress plugin and every other Supertext plugin, and implemented by the Supertext SDK:
 
-1. `POST {base}translate/ai/file`: multipart with `file` (part `Content-Type` exactly `text/html`, no charset, or the API answers 415), `target_lang` (BCP-47, e.g. `de-CH`), optional `source_lang` (primary subtag only, e.g. `en`, or the pair is rejected), optional `politeness` (`more`/`less`). Returns `{file_id}`.
+1. `POST {base}translate/ai/file`: multipart with `file` (part `Content-Type` exactly `text/html`, no charset, or the API answers 415), `target_lang` (regional, e.g. `de-CH`), optional `source_lang` (bare language, e.g. `en`, or the pair is rejected), optional `politeness` (`more`/`less`). Returns `{file_id}`.
 2. `GET …/{file_id}/status` until `done` (`error`, `limit_exceeded`, `deleted` are terminal).
 3. `GET …/{file_id}/translation` returns the translated HTML.
-4. `DELETE …/{file_id}` (files also expire after 24 h).
+4. `DELETE …/{file_id}`, also after errors (files also expire after 24 h).
 
-Auth header: `Authorization: Supertext-Auth-Key <key>`. The header name must be `Authorization` (`Authentication` gets 403). Supertext shows the key with the prefix, so the client strips a pasted `Supertext-Auth-Key ` and always sends exactly one. Base URLs: `https://api.supertext.com/v1/` (live), `https://api.staging.supertext.com/v1/`, `https://api.testing.supertext.com/v1/`. `GET features` is a cost-free key check (*Test connection*, `supertext_check`).
+Auth header: `Authorization: Supertext-Auth-Key <key>`; a pasted `Supertext-Auth-Key ` prefix is stripped, so exactly one is sent. Base URLs: `https://api.supertext.com/v1/` (live), `https://api.staging.supertext.com/v1/`, `https://api.testing.supertext.com/v1/`. `GET features` is a cost-free key check (*Test connection*, `supertext_check`).
 
-**Rate limit:** the API limits requests per second per key (HTTP 429). The client retries a 429 up to 4 times, waiting for `Retry-After` if sent, otherwise 1, 2, 4 and 8 seconds plus jitter.
+**Rate limit:** the API limits requests per second per key (HTTP 429). A 429 is retried up to 4 times, waiting for `Retry-After` if sent, otherwise 1, 2, 4 and 8 seconds plus jitter (at most 30 s).
+
+### Supertext SDK
+
+`wagtail_supertext/_vendor/supertext` is a copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins; `SOURCE` names its version and commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
+
+```bash
+scripts/sync-sdk.sh                  # latest main of the SDK repository
+scripts/sync-sdk.sh v0.2.0           # a tag or commit
+SDK_DIR=../Supertext-API-SDK-and-Guide scripts/sync-sdk.sh   # a local checkout
+```
+
+Then run `pytest` and note the SDK version in `CHANGELOG.md`. Once the SDK is on PyPI, `supertext-sdk` becomes a normal dependency, `client.py` imports `supertext` instead and `_vendor/` and the script go away.
+
+How the plugin uses it: `SupertextClient.translate_strings()` packs the strings with the SDK's `html_document` and `plan_batches` and translates each document with `Client.translate_html()`. A string Supertext returns nothing for is left untranslated (wagtail-localize keeps it for the editor) instead of failing the whole page. Errors: the SDK's `SupertextError.code` (`authentication_failure`, `invalid_language_pair`, `quota_exceeded`, `timeout`, …) selects a message in `client.MESSAGES`, translated in the admin; the API's own text is shown as detail. The API key never appears in messages.
 
 ## Language codes
 
 Supertext wants the **source** as a bare language (`en`) and the **target** as a regional code (`de-DE`, `fr-CH`, `en-US`); a bare target such as `de` is rejected with `INVALID_LANGUAGE_PAIR`. `conf.py` turns Wagtail language codes into Supertext codes:
 
-- **Target** (`Options.target_code`): the `LANGUAGES` → `code` override if set, else the Wagtail code. It is normalized (`de_ch`/`de-ch` → `de-CH`, `zh-hant` → `zh-Hant`, `es-419` stays); a code without region gets a default region (`regional()`): ar-SA, bg-BG, cs-CZ, da-DK, de-DE, el-GR, en-US, es-ES, et-EE, fi-FI, fr-FR, hr-HR, hu-HU, it-IT, ja-JP, ko-KR, lt-LT, lv-LV, nb-NO, nl-NL, pl-PL, pt-PT, ro-RO, ru-RU, sk-SK, sl-SI, sr-RS, sv-SE, th-TH, tr-TR, uk-UA, vi-VN, zh-CN (the same table as the Shopify app). Unknown bare codes are sent unchanged, so Supertext's error names them.
+- **Target** (`Options.target_code`): the `LANGUAGES` → `code` override if set, else the Wagtail code. It is normalized (`de_ch`/`de-ch` → `de-CH`, `zh-hant` → `zh-Hant`, `es-419` stays); a code without region gets a default region (`regional()`, the SDK's `language_codes.target()` and `DEFAULT_REGIONS`: de-DE, en-US, fr-FR, it-IT, pt-PT, zh-CN, …; the same table in every Supertext plugin). Unknown bare codes are sent unchanged, so Supertext's error names them.
 - **Source** (`Options.source_code`): the bare language of the source's target code (`en-us` → `en`; an override's language wins). The client also strips any region before sending.
 - Translating within one language (`en` → `en-GB`) is allowed.
 
@@ -84,8 +98,8 @@ Without `DATABASE_URL` the demo uses SQLite (`demo/db.sqlite3`). To work without
 pytest
 ```
 
-- `tests/test_client.py`: the API protocol, auth header and prefix, 429 retries, errors, clean-up.
-- `tests/test_document.py`: HTML packing, chunking, language codes, environment variables.
+- `tests/test_client.py`: the plugin's client on the SDK through a fake `requests` session: the API protocol, auth header and prefix, 429 retries, errors and their messages, clean-up, many strings in one document. The SDK's own tests and conformance scenarios run in the SDK repository.
+- `tests/test_document.py`: language codes, environment variables.
 - `tests/test_translator.py`: wagtail-localize end to end on SQLite: a page with rich text, a link and StreamField blocks is submitted, machine-translated through a fake API session and published; checks markup, link, slug, politeness, "nothing left to translate", errors as editor messages, and the settings page.
 
 CI (`.github/workflows/ci.yml`) on every push and pull request:

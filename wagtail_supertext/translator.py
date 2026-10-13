@@ -10,8 +10,7 @@ from django.utils.text import slugify
 from wagtail_localize.machine_translators.base import BaseMachineTranslator
 from wagtail_localize.strings import StringValue
 
-from . import conf, document
-from .client import MAX_DOCUMENT_CHARACTERS
+from . import conf
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class SupertextTranslator(BaseMachineTranslator):
 
     wagtail-localize calls ``translate()`` with every string of a page that has no
     translation yet (each a paragraph or field value as inline HTML). They go to Supertext
-    as one document, one ``<div data-st-id>`` per string.
+    as one document, one ``<div data-st-id>`` per string (packed by the Supertext SDK).
     """
 
     display_name = "Supertext"
@@ -56,22 +55,19 @@ class SupertextTranslator(BaseMachineTranslator):
         allow_unicode = getattr(settings, "WAGTAIL_ALLOW_UNICODE_SLUGS", True)
         result = {}
 
-        for group in document.chunks(data, MAX_DOCUMENT_CHARACTERS):
-            html = client.translate_document(document.build([data[i] for i in group]), target, source, politeness)
-            translated = document.parse(html)
-            for position, index in enumerate(group):
-                value = translated.get(position)
-                if not value:
-                    continue
-                if is_slug[index]:
-                    slug = slugify(StringValue(value).render_text(), allow_unicode=allow_unicode)
-                    if slug:
-                        result[strings[index]] = StringValue.from_plaintext(slug)
-                    continue
-                try:
-                    result[strings[index]] = StringValue.from_translated_html(value)
-                except Exception:  # wagtail-localize rejects tags it doesn't allow
-                    logger.warning("Supertext returned HTML wagtail-localize can't use for %r; left untranslated", data[index][:80])
+        translations = client.translate_strings(data, target, source, politeness)
+        for index, value in enumerate(translations):
+            if not value:
+                continue
+            if is_slug[index]:
+                slug = slugify(StringValue(value).render_text(), allow_unicode=allow_unicode)
+                if slug:
+                    result[strings[index]] = StringValue.from_plaintext(slug)
+                continue
+            try:
+                result[strings[index]] = StringValue.from_translated_html(value)
+            except Exception:  # wagtail-localize rejects tags it doesn't allow
+                logger.warning("Supertext returned HTML wagtail-localize can't use for %r; left untranslated", data[index][:80])
 
         return result
 

@@ -132,6 +132,7 @@ Remove `WAGTAILLOCALIZE_MACHINE_TRANSLATOR` (or point it at another translator),
 | *Authentication failed* | The key is wrong or revoked. Check it with **Test connection**, or generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). |
 | *Too many requests to Supertext* | Supertext's per-second limit was still exceeded after 4 automatic retries. Wait a moment and try again. |
 | *Your Supertext translation limit is exceeded* | Your Supertext plan's volume is used up. |
+| *Supertext does not support this language pair* | A locale's Supertext code isn't one Supertext translates into (or from). Check the codes on *Settings → Supertext* and set a `LANGUAGES` → `code` override. The message shows the codes that were sent. |
 | *Timed out waiting* | Very long pages: raise `TIMEOUT`, and your web server's request timeout (e.g. gunicorn `--timeout`). |
 | *Could not reach Supertext* | The server can't make outbound HTTPS calls; check firewall or proxy (`HTTPS_PROXY`). |
 

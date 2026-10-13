@@ -18,12 +18,8 @@ def fake(monkeypatch):
     session = FakeSession()
     from wagtail_supertext.translator import SupertextTranslator
 
-    original = SupertextTranslator.client
-
     def client(self):
-        c = original(self)
-        c.session, c.sleep, c.poll_interval = session, (lambda s: None), 0
-        return c
+        return self.config.client(session=session, sleep=lambda s: None)
 
     monkeypatch.setattr(SupertextTranslator, "client", client)
     monkeypatch.delenv("SUPERTEXT_API_KEY", raising=False)
@@ -99,12 +95,8 @@ def test_errors_become_a_message_in_the_editor(monkeypatch, page, client):
     session = FakeSession(statuses=["limit_exceeded"])
     from wagtail_supertext.translator import SupertextTranslator
 
-    original = SupertextTranslator.client
-
     def fake_client(self):
-        c = original(self)
-        c.session, c.sleep, c.poll_interval = session, (lambda s: None), 0
-        return c
+        return self.config.client(session=session, sleep=lambda s: None)
 
     monkeypatch.setattr(SupertextTranslator, "client", fake_client)
     user = get_user_model().objects.create_superuser("admin", "admin@example.com", "pw")

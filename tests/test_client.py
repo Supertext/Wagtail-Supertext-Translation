@@ -1,6 +1,6 @@
 import pytest
 
-from wagtail_supertext.client import SupertextClient, SupertextError, base_url_for, normalize_key, retry_delay
+from wagtail_supertext.client import SDK_VERSION, SupertextClient, SupertextError, base_url_for, normalize_key
 from tests.fake import FakeSession
 
 
@@ -45,9 +45,22 @@ def test_gives_up_after_four_retries():
     assert len(session.calls) == 5
 
 
-def test_retry_after():
-    assert retry_delay(0, "3") == 3
-    assert retry_delay(1) >= 2
+def test_strings_in_one_document():
+    session = FakeSession()
+    out = client(session).translate_strings(["Hello <b>world</b>", "Fish &amp; chips", ""], "de", "en")
+    assert out == ["[de-DE] Hello <b>[de-DE] world</b>", "[de-DE] Fish &amp; chips", None]  # blank: not sent
+    assert session.calls[0]["data"]["target_lang"] == "de-DE"  # bare target gets its region
+    assert sum(c["method"] == "POST" for c in session.calls) == 1
+
+
+def test_invalid_language_pair_has_its_own_message():
+    with pytest.raises(SupertextError, match="does not support this language pair") as info:
+        client(FakeSession()).translate_document("<p>x</p>", "xx", "en")
+    assert info.value.code == "invalid_language_pair"
+
+
+def test_vendored_sdk_version():
+    assert SDK_VERSION.count(".") == 2
 
 
 def test_authentication_error():

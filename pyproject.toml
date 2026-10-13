@@ -14,7 +14,6 @@ dependencies = [
     "wagtail>=7.0",
     "wagtail-localize>=1.12",
     "requests>=2.31",
-    "beautifulsoup4>=4.12",
 ]
 classifiers = [
     "Framework :: Django",
