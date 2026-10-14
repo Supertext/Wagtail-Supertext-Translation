@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Added: support for Python 3.14 (tested in CI with Wagtail 8.0 and Django 6.1).
 - Added: **Send version information to Supertext** (on by default; `"VERSION_REPORTS": False` or `SUPERTEXT_VERSION_REPORTS=0` turns it off). The plugin reports the site URL and the plugin, Wagtail, Python and SDK versions, whether a key is set and the API key check to the Supertext Commando Center after an update and when the key changes, in the background. No content, no API key, no personal data. See the installation guide.
 - Added: automatic **API key check** (Supertext's cost-free `features` call) when the key changes, on *Test connection*, with `supertext_check` and when a translation is rejected; *Settings → Supertext* shows the latest result with its time (with the account and API key links when the key is rejected or missing). *Test connection* now shows this check.
 - Added: public ping endpoint `GET /supertext/ping` (add `path("supertext/", include("wagtail_supertext.urls"))` to your `urls.py`), so Supertext can see the site is reachable; 404 while version information is off.
