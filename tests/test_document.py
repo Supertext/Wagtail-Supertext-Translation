@@ -51,6 +51,14 @@ def test_unmapped_languages_are_not_guessed(code):
     assert options.target_code_or_none(code) is None
 
 
+def test_one_mapping_for_both_directions():
+    options = load({"LANGUAGES": {"de": {"code": "de-CH"}, "en": {"code": "en-US"}}})
+    assert options.target_code("de") == "de-CH"
+    assert options.source_code("de") == "de"
+    assert options.target_code("en") == "en-US"
+    assert options.source_code("en") == "en"
+
+
 def test_unknown_source_language():
     with pytest.raises(SupertextError) as info:
         load({}).source_code("xx")

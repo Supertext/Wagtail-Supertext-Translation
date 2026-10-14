@@ -57,15 +57,13 @@ class Options:
             return None
 
     def source_code(self, language_code: str) -> str:
-        """Supertext source for a Wagtail language: the bare language of the mapping or the code (``en-us`` → ``en``)."""
-        mapped = self.mapping_for(language_code)
+        """Supertext source for a Wagtail language: the LANGUAGES mapping in its source form (one mapping for
+        both directions: ``de-CH`` → ``de``), else the code's language (``en-us`` → ``en``), else
+        ``unsupported_language``."""
         try:
-            return Languages.source(mapped or language_code)
+            return Languages.source(language_code, self.mapping)
         except sdk.SupertextError as error:
-            raise SupertextError.from_sdk(sdk.SupertextError(error.code, source_lang=language_code)) from error
-
-    def mapping_for(self, language_code: str) -> str:
-        return str(self.language(language_code).get("code") or "").strip()
+            raise SupertextError.from_sdk(error) from error
 
     def politeness(self, language_code: str) -> str:
         value = self.language(language_code).get("politeness") or "default"

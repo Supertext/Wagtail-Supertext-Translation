@@ -100,7 +100,7 @@ Supertext translates into the site's **locales** (*Settings → Locales*, from `
 
 - A locale whose Wagtail code **is** one of these codes (apart from upper/lower case and `_`/`-`) is used as it is: `de-ch` → `de-CH`, `fr-ch` → `fr-CH`, `es` → `es`.
 - **Every other locale needs a mapping**: `code` under `LANGUAGES` (below), e.g. `de` → `de-CH`, `zh-cn` → `zh-Hans`, `es-es` → `es`. The plugin never guesses a region: an unmapped locale gets the message *The language … has no Supertext language yet* in the translation editor, and nothing is sent to Supertext. *Settings → Supertext* marks it **Not mapped**.
-- The source language is sent without region (`en-gb` → `en`; a mapped source uses the language of its mapping).
+- The source language is sent without region (`en-gb` → `en`; a mapped source uses the language of its mapping, so one `code` serves both directions: `"en": {"code": "en-US"}` translates into `en-US` and from `en`).
 - Translating within one language (`en` → `en-GB`) isn't offered.
 
 ![Settings → Locales: Deutsch (Schweiz), English, Français (Suisse) and Italiano (Svizzera)](images/locales.png)
