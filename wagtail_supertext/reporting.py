@@ -1,8 +1,9 @@
 """Version reports to the Supertext Commando Center, the automatic API key check and the ping endpoint.
 
-Protocol: Commando-Center-Supertext-Translation → docs/DEVELOPER.md → *Report protocol*. The
-SDK implements it (``InstallationReporter``, ``check_api_key()``, ``ping_response()``,
-``reports_enabled()``); this module only gives it what Wagtail knows: the site URL, the
+Protocol: Commando-Center-Supertext-Translation → docs/DEVELOPER.md → *Report protocol*.
+Supertext Plugin Health (``_vendor/plugin_health``) implements it (``InstallationReporter``,
+``ping_response()``, ``reports_enabled()``) with the SDK's ``check_api_key()`` as the key check;
+this module only gives them what Wagtail knows: the site URL, the
 Wagtail and plugin versions, the ping URL, and a place for the reporter's state (the
 ``SupertextState`` row ``reporter``).
 
@@ -29,17 +30,20 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 
 from . import __version__
-from ._vendor.supertext import SDK_VERSION
-from ._vendor.supertext.v1 import (
-    ApiKeyCheck,
+from ._vendor.plugin_health import (
+    CallableKeyChecker,
+    HttpRequest,
+    HttpResponse,
     InstallationReporter,
+    KeyCheck,
     NameVersion,
     ReporterResult,
     ReporterState,
-    SupertextClient,
     ping_response,
     reporter_state,
 )
+from ._vendor.supertext import SDK_VERSION
+from ._vendor.supertext import v1 as sdk
 from .client import API_KEY_URL, SIGNUP_URL, RequestsTransport
 
 logger = logging.getLogger(__name__)
@@ -106,7 +110,7 @@ def save_state(state: ReporterState) -> None:
     SupertextState.objects.update_or_create(key=STATE_KEY, defaults={"value": state.to_json()})
 
 
-def last_check() -> ApiKeyCheck | None:
+def last_check() -> KeyCheck | None:
     """The latest stored key check (for *Settings → Supertext*), or None."""
     try:
         return load_state().key_check
@@ -118,10 +122,23 @@ def last_check() -> ApiKeyCheck | None:
 # ------------------------------------------------------------------------------ reporter
 
 
+def key_client(options, api_key: str, http) -> sdk.SupertextClient:
+    """The SDK client for the key check (the configured API URL, the plugin's user agent and transport)."""
+    return sdk.SupertextClient(
+        api_key, base_url=options.base_url, user_agent=f"wagtail-supertext-translation/{__version__}", transport=http
+    )
+
+
 def reporter(options, request=None) -> InstallationReporter | None:
     url = site_url(request)
     if not url:
         return None
+    http = transport()
+
+    def send(report: HttpRequest) -> HttpResponse:
+        answer = http(sdk.HttpRequest(report.method, report.url, dict(report.headers), report.body, report.timeout))
+        return HttpResponse(answer.status, answer.body)
+
     return InstallationReporter(
         enabled=options.reports_enabled,
         site_url=url,
@@ -129,8 +146,11 @@ def reporter(options, request=None) -> InstallationReporter | None:
         system=NameVersion("Wagtail", wagtail.__version__),
         sdk_version=SDK_VERSION,
         callback_url=callback_url(url),
-        transport=transport(),
-        client_options={"base_url": options.base_url, "user_agent": f"wagtail-supertext-translation/{__version__}"},
+        transport=send,
+        key_checker=CallableKeyChecker(
+            check=lambda api_key: key_client(options, api_key, http).check_api_key(),
+            fingerprint=sdk.api_key_fingerprint,
+        ),
     )
 
 
@@ -148,8 +168,8 @@ def run(action: str, options, request=None, http_status: int = 401) -> ReporterR
                 if action != "test_connection":
                     return None
                 # The key check doesn't need a site URL: run it alone and keep the result.
-                client = SupertextClient(options.api_key, base_url=options.base_url, transport=transport())
-                state = replace(state, key_check=client.check_api_key())
+                check = KeyCheck.from_value(key_client(options, options.api_key, transport()).check_api_key())
+                state = replace(state, key_check=check)
                 save_state(state)
                 return ReporterResult(state, state.key_check, None, False)
             if action == "test_connection":
@@ -201,7 +221,7 @@ class _FixedSite:
 
 
 def ping(challenge) -> tuple[int, dict[str, str], str]:
-    """The ping endpoint's answer (status, headers, body), exactly as the SDK builds it."""
+    """The ping endpoint's answer (status, headers, body), exactly as Plugin Health builds it."""
     from . import conf
 
     try:
@@ -215,7 +235,7 @@ def ping(challenge) -> tuple[int, dict[str, str], str]:
 # ------------------------------------------------------------------------------ messages
 
 
-def check_message(check: ApiKeyCheck | None) -> str:
+def check_message(check: KeyCheck | None) -> str:
     """The key check as a message in the admin language (account and key links for invalid/missing)."""
     if check is None:
         return ""
@@ -245,6 +265,6 @@ def check_message(check: ApiKeyCheck | None) -> str:
     ) % {"status": status}
 
 
-def checked_at(check: ApiKeyCheck | None):
+def checked_at(check: KeyCheck | None):
     """When the check ran, as an aware datetime (for the template's date filter)."""
     return parse_datetime(check.checked_at) if check and check.checked_at else None

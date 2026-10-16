@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
+from ._vendor import plugin_health
 from ._vendor.supertext import v1 as sdk
 from ._vendor.supertext.v1 import Languages
 from .client import SupertextClient, SupertextError, base_url_for, normalize_key
@@ -35,7 +36,7 @@ class Options:
     @property
     def reports_enabled(self) -> bool:
         """*Send version information to Supertext*: SUPERTEXT_VERSION_REPORTS wins over VERSION_REPORTS (default on)."""
-        return sdk.reports_enabled(self.version_reports)
+        return plugin_health.reports_enabled(self.version_reports)
 
     def target_code(self, language_code: str) -> str:
         """Supertext target for a Wagtail language, without guessing.

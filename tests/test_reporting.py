@@ -33,7 +33,7 @@ def test_first_admin_request_reports_installed(admin, center):
     assert report["site_url"] == "http://testserver"
     assert report["plugin"] == {"name": "Wagtail-Supertext-Translation", "version": __version__}
     assert report["system"]["name"] == "Wagtail" and report["runtime"]["name"] == "Python"
-    assert report["sdk_version"] == "0.2.1"
+    assert report["sdk_version"] == "0.3.0"
     assert report["api_key_configured"] is True and report["api_key_check"]["status"] == "ok"
     assert report["callback"] == {"url": "http://testserver/supertext/ping"}
     assert "test-key" not in json.dumps(report)
@@ -45,6 +45,35 @@ def test_first_admin_request_reports_installed(admin, center):
     requests_before = len(center.requests)
     admin.get("/admin/supertext/")
     assert len(center.requests) == requests_before
+
+
+def test_state_stored_by_the_sdk_reporter_is_kept(admin, center):
+    # Stored by the Supertext SDK 0.1-0.2 reporter (same row, same JSON): no new installed report.
+    import platform
+
+    import wagtail
+
+    from wagtail_supertext._vendor.supertext.v1 import api_key_fingerprint
+
+    old = {
+        "reportedVersions": f"{__version__}|{wagtail.__version__}|{platform.python_version()}",
+        "reportedKeyStatus": "ok",
+        "lastFailureAt": None,
+        "keyCheck": {"status": "ok", "checkedAt": "2026-10-01T08:00:00Z", "httpStatus": 200, "errorCode": None, "fingerprint": api_key_fingerprint("test-key")},
+    }
+    SupertextState.objects.create(key="reporter", value=json.dumps(old, separators=(",", ":")))
+    admin.get("/admin/supertext/")
+    assert center.requests == [] and stored() == old
+
+
+def test_bundled_plugin_health():
+    from pathlib import Path
+
+    from wagtail_supertext._vendor import plugin_health, supertext
+
+    vendor = Path(reporting.__file__).parent / "_vendor"
+    assert (vendor / "plugin_health" / "VERSION").read_text().strip() == plugin_health.PLUGIN_HEALTH_VERSION == "0.1.0"
+    assert not hasattr(supertext.v1, "InstallationReporter")
 
 
 def test_upgrade_is_reported(admin, center):
@@ -78,11 +107,11 @@ def test_test_connection_shows_rejected_key_with_links(admin, center, monkeypatc
 def test_check_messages_in_the_admin_language():
     from django.utils import translation
 
-    check = reporting.ApiKeyCheck("error", "2026-10-13T08:00:00Z", 418, None, "x")
+    check = reporting.KeyCheck("error", "2026-10-13T08:00:00Z", 418, None, "x")
     with translation.override("de"):
         assert "Supertext hat mit einem Fehler geantwortet (418)" in reporting.check_message(check)
     with translation.override("it"):
-        assert reporting.check_message(reporting.ApiKeyCheck("ok", "2026-10-13T08:00:00Z", 200, None, "x")).startswith("Chiave API verificata")
+        assert reporting.check_message(reporting.KeyCheck("ok", "2026-10-13T08:00:00Z", 200, None, "x")).startswith("Chiave API verificata")
 
 
 def test_reports_off_sends_nothing_but_still_checks_the_key(admin, center, monkeypatch, client):

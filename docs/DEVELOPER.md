@@ -27,8 +27,9 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 | `translator.py` | `SupertextTranslator(BaseMachineTranslator)`: `display_name = "Supertext"`, `can_translate()` (source and target are different languages; an unmapped locale keeps the button so the editor gets the message), `translate()` (refuses politeness for a target without it, runs the reporter after the translation) |
 | `client.py` | The plugin's Supertext client on top of the Supertext SDK: sends the SDK's requests with `requests` (`RequestsTransport`), maps SDK error codes to translatable messages (`SupertextError`). No Django imports; the session and `sleep` are injectable for tests. |
 | `_vendor/supertext/` | The [Supertext Python SDK](https://github.com/Supertext/Supertext-API-SDK-and-Guide) (`sdk/python`), the package's own copy, made by `scripts/vendor-sdk.sh`; see *Supertext SDK* |
+| `_vendor/plugin_health/` | [Supertext Plugin Health](https://github.com/Supertext/Commando-Center-Supertext-Translation/tree/main/plugin-health) (`plugin-health/python`), the package's own copy, made by `scripts/vendor-plugin-health.sh`; see *Supertext Plugin Health* |
 | `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT` / `SUPERTEXT_VERSION_REPORTS`; Wagtail language code → Supertext code (the SDK's `Languages`, see *Language codes*) and tone |
-| `reporting.py` | Commando Center: version reports, the API key check and the ping answer (the SDK's `InstallationReporter`, `ping_response`), site URL, state storage, the key-check messages |
+| `reporting.py` | Commando Center: version reports, the API key check and the ping answer (Plugin Health's `InstallationReporter`, `ping_response`, with the SDK's `check_api_key()` as the key check), site URL, state storage, the key-check messages |
 | `models.py`, `migrations/` | `SupertextState`: one row `reporter` with the reporter's JSON state |
 | `urls.py` | Public URLs, included by the site's `urls.py`: `GET /supertext/ping` |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
@@ -59,7 +60,7 @@ Auth header: `Authorization: Supertext-Auth-Key <key>`; a pasted `Supertext-Auth
 
 ### Supertext SDK
 
-`wagtail_supertext/_vendor/supertext` is the package's own copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins: a private subpackage, so sites install nothing besides this package and an installed `supertext-sdk` can never clash with it. `COMMIT` names the SDK commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
+`wagtail_supertext/_vendor/supertext` is the package's own copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins (since SDK 0.3.0 it provides the client and the API key check, `check_api_key()` and `api_key_fingerprint()`; version reports and the ping come from Supertext Plugin Health, below): a private subpackage, so sites install nothing besides this package and an installed `supertext-sdk` can never clash with it. `COMMIT` names the SDK commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
 
 ```bash
 scripts/vendor-sdk.sh                  # latest main of the SDK repository
@@ -70,6 +71,17 @@ SDK_DIR=/path/to/clone scripts/vendor-sdk.sh   # a local clone as it is
 The script copies the whole package with its subpackages (`supertext/__init__.py`, `transport.py`, `version.py` and `v1/`); the plugin imports the API from `_vendor.supertext.v1` (SDK 0.2.0+). Then run `pytest` and note the SDK version in `CHANGELOG.md`. This stays so after the SDK is on PyPI.
 
 How the plugin uses it: `SupertextClient.translate_strings()` packs the strings with the SDK's `html_document` and `plan_batches` and translates each document with `Client.translate_html()`. A string Supertext returns nothing for is left untranslated (wagtail-localize keeps it for the editor) instead of failing the whole page. Errors: the SDK's `SupertextError.code` (`authentication_failure`, `invalid_language_pair`, `quota_exceeded`, `timeout`, …) selects a message in `client.MESSAGES`, translated in the admin; the API's own text is shown as detail. The API key never appears in messages.
+
+### Supertext Plugin Health
+
+Version reports to the Supertext Commando Center, the API key check result and the reachability ping come from **Supertext Plugin Health**, a dependency-free library that lives next to the center ([Supertext/Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `plugin-health/python`). It doesn't talk to Supertext itself: `reporting.py` passes it the SDK's key check (`CallableKeyChecker(check=…check_api_key(), fingerprint=api_key_fingerprint)`) and `SDK_VERSION`. `wagtail_supertext/_vendor/plugin_health` is the package's own copy, next to the SDK's (imported as `wagtail_supertext._vendor.plugin_health`, so an installed `supertext-plugin-health` can never clash with it; it uses relative imports, so nothing is rewritten). `COMMIT` and `VERSION` name its revision. Never edit it: fix it in Commando-Center-Supertext-Translation/plugin-health, then copy it again:
+
+```bash
+scripts/vendor-plugin-health.sh plugin-health-v0.1.0               # a release tag (default: main)
+PLUGIN_HEALTH_DIR=/path/to/clone scripts/vendor-plugin-health.sh   # a local clone of the center's repository as it is
+```
+
+The script fails if an absolute `supertext_plugin_health` import is left. Then run `pytest` and note the version in `CHANGELOG.md`. Its state is the same camelCase JSON the SDK 0.1–0.2 reporter stored, so the switch kept every site's history (no new `installed` report).
 
 ## Language codes
 
@@ -84,12 +96,12 @@ Supertext accepts exactly the codes its `GET features` lists (the SDK's `Languag
 
 ## Commando Center: version reports, key check, ping
 
-Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `docs/DEVELOPER.md` → *Report protocol*. The SDK's `InstallationReporter`, `check_api_key()`, `reports_enabled()`, `reporter_state()` and `ping_response()` implement it; `reporting.py` only supplies what Wagtail knows:
+Protocol: [Commando-Center-Supertext-Translation](https://github.com/Supertext/Commando-Center-Supertext-Translation) → `docs/DEVELOPER.md` → *Report protocol*. Supertext Plugin Health's `InstallationReporter`, `reports_enabled()`, `reporter_state()` and `ping_response()` implement it, with the SDK's `check_api_key()` as the key check; `reporting.py` only supplies what Wagtail knows:
 
 - **Setting:** `VERSION_REPORTS` in the translator's `OPTIONS` (default on), `SUPERTEXT_VERSION_REPORTS` (0/1) wins (`Options.reports_enabled` → `reports_enabled()`). Off: no reports, ping 404. `SUPERTEXT_REPORT_URL` sends reports elsewhere (tests, the stand-in).
-- **Report fields:** `site_url` = `WAGTAILADMIN_BASE_URL` (absolute), else the request's scheme and host, else the default `Site`'s `root_url`; plugin `Wagtail-Supertext-Translation` with `wagtail_supertext.__version__`; system `Wagtail` with `wagtail.__version__`; runtime Python (the SDK's default); `sdk_version` from the bundled SDK; `callback.url` = site URL + `reverse("wagtail_supertext_ping")`, left out when the site's `urls.py` doesn't include `wagtail_supertext.urls`. The key check and reports go through `RequestsTransport` (proxies, certificates).
+- **Report fields:** `site_url` = `WAGTAILADMIN_BASE_URL` (absolute), else the request's scheme and host, else the default `Site`'s `root_url`; plugin `Wagtail-Supertext-Translation` with `wagtail_supertext.__version__`; system `Wagtail` with `wagtail.__version__`; runtime Python (Plugin Health's default); `sdk_version` = the bundled SDK's `SDK_VERSION`; `callback.url` = site URL + `reverse("wagtail_supertext_ping")`, left out when the site's `urls.py` doesn't include `wagtail_supertext.urls`. The key check and reports go through `RequestsTransport` (proxies, certificates; reports through a small adapter from Plugin Health's request type).
 - **When:** settings live in Django settings, so there is no `settings_saved`. `on_request` runs in a background thread on *Settings → Supertext* (GET) and after every translation (reports `installed`, `upgraded` or `api_key_check`; checks the key only when its fingerprint changed); *Test connection* runs `test_connection` and waits for it; a translation that gets 401/403 runs `authentication_failed`; `supertext_check` runs `test_connection`, then `report_check`. Calls are serialized per process (a lock); nothing here ever raises into a request or a translation (storage errors are caught too, logged at debug level).
-- **State:** `SupertextState(key="reporter")`, the reporter's camelCase JSON (`ReporterState.to_json()`), read back with `reporter_state()` (broken → empty). Only a fingerprint of the key.
+- **State:** `SupertextState(key="reporter")`, the reporter's camelCase JSON (`ReporterState.to_json()`, the same the SDK 0.1–0.2 reporter stored), read back with `reporter_state()` (broken → empty). Only a fingerprint of the key.
 - **Ping:** `views.ping` (`GET /supertext/ping`, `require_GET`, no login, no session or CSRF): status, headers (`Content-Type: application/json`, `Cache-Control: no-store`) and body exactly as `ping_response()` returns them; `request._cache_update_cache = False` keeps Django's cache middleware from storing it.
 - **Messages:** `reporting.check_message()` has the center's key-check texts (en/de/fr/it via the `.po` files), with the account and API key links (new tab) for `invalid` and `missing`.
 
@@ -115,7 +127,7 @@ pytest
 
 - `tests/test_client.py`: the plugin's client on the SDK through a fake `requests` session: the API protocol, auth header and prefix, 429 retries, errors and their messages, clean-up, many strings in one document. The SDK's own tests and conformance scenarios run in the SDK repository.
 - `tests/test_document.py`: language mapping and exact codes, unmapped languages (no guessing), tone support, environment variables, the version-reports setting.
-- `tests/test_reporting.py`: one `installed` report from *Settings → Supertext* (fields, callback URL, never the key), nothing more when nothing changed, `upgraded`, *Test connection* with a rejected key (message with links), reports off (nothing sent, key still checked, ping 404), the `VERSION_REPORTS` option, an unreachable center (no retry within the hour), storage failures, the ping answers, a 401/403 reported once, `supertext_check`, the site URL. `tests/conftest.py` sends every report and key check to `tests.fake.FakeTransport` (never the live center or API) in the same thread.
+- `tests/test_reporting.py`: one `installed` report from *Settings → Supertext* (fields, `sdk_version`, callback URL, never the key), nothing more when nothing changed, state stored by the SDK 0.1–0.2 reporter kept (no new report), the bundled Plugin Health version, `upgraded`, *Test connection* with a rejected key (message with links), reports off (nothing sent, key still checked, ping 404), the `VERSION_REPORTS` option, an unreachable center (no retry within the hour), storage failures, the ping answers, a 401/403 reported once, `supertext_check`, the site URL. `tests/conftest.py` sends every report and key check to `tests.fake.FakeTransport` (never the live center or API) in the same thread.
 - `tests/test_translator.py`: wagtail-localize end to end on SQLite: a page with rich text, a link and StreamField blocks is submitted, machine-translated through a fake API session and published; checks markup, link, slug, politeness, "nothing left to translate", errors as editor messages, the settings page, unmapped locales (nothing sent), politeness for a target without it, and a rejected key reported to the (fake) center.
 
 CI (`.github/workflows/ci.yml`) on every push and pull request:
