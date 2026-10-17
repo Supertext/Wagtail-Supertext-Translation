@@ -12,12 +12,16 @@ import { chromium } from 'playwright'
 const B = process.env.BASE_URL || 'http://127.0.0.1:8093'
 const OUT = new URL('../../docs/images', import.meta.url).pathname
 const LIVE_API = 'https://api.supertext.com/v1/'
+const FIXED_TIME = 'Oct. 13, 2026, 9:41 a.m.' // Django's DATETIME_FORMAT in English
 const pad = (r, p = 8) => ({ x: Math.max(0, r.x - p), y: Math.max(0, r.y - p), width: r.width + 2 * p, height: r.height + 2 * p })
 
 const browser = await chromium.launch()
 
 async function session(email, password) {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 860 } })).newPage()
+  const context = await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  // Times shown by the browser (relative dates and the like) don't change between runs.
+  await context.clock.setFixedTime(new Date('2026-10-13T09:41:00+02:00'))
+  const page = await context.newPage()
   await page.goto(`${B}/admin/login/`)
   await page.fill('#id_username', email)
   await page.fill('#id_password', password)
@@ -48,6 +52,8 @@ async function pageId(page, title) {
   await page.waitForLoadState('networkidle')
   // The docs run against a local stand-in API; show the endpoint users will see.
   await page.evaluate((live) => document.querySelectorAll('code').forEach((c) => { if (c.textContent.includes('127.0.0.1')) c.textContent = live }), LIVE_API)
+  // The key check's time changes with every run; show a fixed one, so the image only changes with the UI.
+  await page.evaluate((time) => document.querySelectorAll('p.help').forEach((p) => { if (/^\s*Checked on /.test(p.textContent)) p.textContent = `Checked on ${time}` }), FIXED_TIME)
   // The whole page: connection, API key check, version information and the languages table.
   // Wagtail scrolls inside <main>, so make the window as tall as the page instead.
   const height = await page.evaluate(() => {
