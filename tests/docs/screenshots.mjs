@@ -108,11 +108,15 @@ async function pageId(page, title) {
   // Publish and show the German page on the site
   await page.getByRole('button', { name: /^Publish in / }).click()
   await page.waitForLoadState('networkidle')
+  // html_url can be null right after translating: Wagtail caches the site root paths (one hour, per
+  // worker) and the German home page didn't exist when they were cached. The demo's URLs are
+  // /<locale>/<slug>/ (i18n_patterns, the article sits right under the locale's home page).
   const german = await page.evaluate(async () => {
-    const r = await fetch('/admin/api/main/pages/?search=Schweizer')
-    return (await r.json()).items[0]?.meta?.html_url
+    const r = await fetch('/admin/api/main/pages/?type=home.ArticlePage&locale=de-ch')
+    const item = (await r.json()).items[0]
+    return item?.meta?.html_url ? new URL(item.meta.html_url).pathname : `/de-ch/${item?.meta?.slug}/`
   })
-  await page.goto(B + new URL(german).pathname)
+  await page.goto(B + german)
   await page.waitForLoadState('networkidle')
   await shot('translated-page', { x: 0, y: 0, width: 1280, height: 640 })
 }

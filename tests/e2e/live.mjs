@@ -215,9 +215,20 @@ for (const locale of locales) {
 const pagesBefore = (await q(`${PAGE} WHERE p.depth > 1 ORDER BY p.id`)).map((p) => `${p.id}:${p.live_revision_id}`).join(',');
 for (const locale of locales) {
 	for (const target of firstRun[locale]) {
+		const tag = `"${target.title}" (${locale})`;
+		await page.goto(`${B}/admin/pages/${target.id}/edit/`);
+		const button = page.getByRole('button', { name: 'Translate with Supertext' });
+		await button.waitFor();
+		if (await button.isDisabled()) {
+			// The translation editor disables the button when every string has a translation.
+			check(`${tag}: "Translate with Supertext" disabled, nothing left to translate`, true);
+			const msgs = await messages();
+			check(`${tag}: translation editor shows no error`, !msgs.some((m) => m.kind === 'error'), msgs.map((m) => m.text).join(' | '));
+			continue;
+		}
 		const msgs = await translateWithSupertext(target, 'second-run');
-		check(`"${target.title}" (${locale}): translating again shows no error`, !msgs.some((m) => m.kind === 'error'), msgs.map((m) => m.text).join(' | '));
-		if (msgs.some((m) => /anything left to translate/.test(m.text))) note(`"${target.title}" (${locale}): "There isn't anything left to translate."`);
+		check(`${tag}: translating again shows no error`, !msgs.some((m) => m.kind === 'error'), msgs.map((m) => m.text).join(' | '));
+		if (msgs.some((m) => /anything left to translate/.test(m.text))) note(`${tag}: "There isn't anything left to translate."`);
 	}
 }
 const pagesAfter = (await q(`${PAGE} WHERE p.depth > 1 ORDER BY p.id`)).map((p) => `${p.id}:${p.live_revision_id}`).join(',');
