@@ -56,6 +56,8 @@ async function pageId(page, title) {
   })
   await page.setViewportSize({ width: 1280, height: Math.min(height, 1500) })
   await shot('settings-supertext')
+  // The Languages section alone: one drop-down per locale (Settings → Supertext → Languages).
+  await shot('settings-languages', await box(page.locator('section').filter({ has: page.locator('form.supertext-languages') })))
   await page.setViewportSize({ width: 1280, height: 860 })
 
   await go('/admin/locales/')

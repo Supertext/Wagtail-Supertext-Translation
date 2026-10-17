@@ -77,9 +77,9 @@ python manage.py migrate
 
 ## 3. Check it works
 
-As a superuser, open **Settings → Supertext** in the Wagtail admin and click **Test connection**. *API key checked: the connection to Supertext works.* means everything is in place. The page also shows the installed plugin version (linked to its release notes on GitHub), the latest API key check with its time, whether version information is sent to Supertext (with the ping endpoint's address), and which Supertext language code and tone each locale gets, or *Not mapped* for a locale that still needs a Supertext language.
+As a superuser, open **Settings → Supertext** in the Wagtail admin and click **Test connection**. *API key checked: the connection to Supertext works.* means everything is in place. The page also shows the installed plugin version (linked to its release notes on GitHub), the latest API key check with its time, whether version information is sent to Supertext (with the ping endpoint's address), and the **Languages** table, where you choose the Supertext language and tone of each locale (see [Locales](#4-locales)).
 
-![Settings → Supertext: API key set from the SUPERTEXT_API_KEY environment variable, API https://api.supertext.com/v1/, Plugin version 0.1.0, API key check "API key checked: the connection to Supertext works." with its time, the Test connection button, Send version information to Supertext: On with the ping endpoint, and the languages table: Deutsch (Schweiz) de-CH formal, English source language, Français (Suisse) fr-CH formal, Italiano (Svizzera) it-CH formal](images/settings-supertext.png)
+![Settings → Supertext: API key set from the SUPERTEXT_API_KEY environment variable, API https://api.supertext.com/v1/, Plugin version 0.1.0, API key check "API key checked: the connection to Supertext works." with its time, the Test connection button, Send version information to Supertext: On with the ping endpoint, and the Languages table with a drop-down per locale: Deutsch (Schweiz) German (Switzerland) (de-CH) formal, English (source language) English (United States) (en-US), Français (Suisse) French (Switzerland) (fr-CH) formal, Italiano (Svizzera) Italian (Switzerland) (it-CH) formal, and Save languages](images/settings-supertext.png)
 
 From the command line (checks the key, prints the result and sends a `check` version report if reports are on; exits with an error when Supertext doesn't accept the key):
 
@@ -98,16 +98,37 @@ Supertext translates into the site's **locales** (*Settings → Locales*, from `
 | Swiss German | `gsw-u-sd-chzh` (Zurich), `gsw-u-sd-chbe` (Bern) |
 | All others, without region | `bg`, `cs`, `da`, `el`, `es`, `fi`, `hr`, `hu`, `ja`, `ko`, `nb`, `nl`, `pl`, `rm`, `ru`, `sk`, `sl`, `sq`, `sv`, `tr` |
 
-- A locale whose Wagtail code **is** one of these codes (apart from upper/lower case and `_`/`-`) is used as it is: `de-ch` → `de-CH`, `fr-ch` → `fr-CH`, `es` → `es`.
-- **Every other locale needs a mapping**: `code` under `LANGUAGES` (below), e.g. `de` → `de-CH`, `zh-cn` → `zh-Hans`, `es-es` → `es`. The plugin never guesses a region: an unmapped locale gets the message *The language … has no Supertext language yet* in the translation editor, and nothing is sent to Supertext. *Settings → Supertext* marks it **Not mapped**.
-- The source language is sent without region (`en-gb` → `en`; a mapped source uses the language of its mapping, so one `code` serves both directions: `"en": {"code": "en-US"}` translates into `en-US` and from `en`).
+### Choosing the Supertext language: *Settings → Supertext → Languages*
+
+*Settings → Supertext* (superusers) has a **Languages** table with one row per locale, the source language included (one choice serves both directions). Each row has a drop-down with Supertext's target languages (*German (Switzerland) (de-CH)*, *Spanish (es)*, …) and, where the chosen language offers it, a **Tone** drop-down (*Default*, *Formal (Sie, vous)*, *Informal (du, tu)*). **Save languages** stores the choices in the database (table `wagtail_supertext_supertextlanguage`, created by `migrate`); only codes from Supertext's list are accepted.
+
+![Settings → Supertext → Languages: one row per locale with a drop-down of Supertext languages and a Tone drop-down, and the Save languages button](images/settings-languages.png)
+
+The drop-down preselects the saved choice, else the **suggested** language. When translating, a locale's Supertext language is:
+
+1. the `code` in the `LANGUAGES` option, if set (see below; it wins, and the row shows *Set in the LANGUAGES option* instead of a drop-down);
+2. else the language chosen and saved on *Settings → Supertext*;
+3. else the locale's own code, if it is a Supertext code (apart from case and `_`/`-`): `de-ch` → `de-CH`, `fr-ch` → `fr-CH`, `es` → `es`;
+4. else the default, if there is an obvious one:
+
+   | Wagtail locale | Default |
+   | --- | --- |
+   | `de`, `en`, `fr`, `it`, `pt` | `de-DE`, `en-US`, `fr-FR`, `it-IT`, `pt-PT` |
+   | `zh`, `zh-cn`, `zh-sg` | `zh-Hans` |
+   | `zh-tw`, `zh-hk`, `zh-mo` | `zh-Hant` |
+   | `sr` | `sr-Latn` |
+   | a region of a language Supertext offers without region | the bare language: `es-es` → `es`, `nl-be` → `nl`, `sl-si` → `sl` |
+
+5. else nothing: the row shows **— choose —** and *No Supertext language: choose one, or this locale can't be translated*, the editor gets *The language … has no Supertext language yet*, and nothing is sent to Supertext. This is the case for locales without an obvious default, e.g. `en-ie`, `de-li`, `gsw`, `sr-rs`.
+
+- The source language is sent without region (`en-gb` → `en`; a chosen or mapped source uses the language of its choice: `en` set to `en-US` translates into `en-US` and from `en`).
 - Translating within one language (`en` → `en-GB`) isn't offered.
 
 ![Settings → Locales: Deutsch (Schweiz), English, Français (Suisse) and Italiano (Svizzera)](images/locales.png)
 
-### Language mapping and tone
+### Override in the settings: `LANGUAGES`
 
-Per locale (keyed by its Wagtail language code), `code` is the Supertext language it is sent as (it wins over the exact match), and `politeness` is the tone:
+For automated setups, the `LANGUAGES` option sets the language and tone per locale (keyed by its Wagtail language code) in the Django settings. It wins over *Settings → Supertext*, per entry: a locale with `code` here shows that code instead of a drop-down, one with `politeness` here shows that tone.
 
 ```python
 "OPTIONS": {
@@ -120,7 +141,9 @@ Per locale (keyed by its Wagtail language code), `code` is the Supertext languag
 },
 ```
 
-`politeness`: `more` = formal (*Sie, vous*), `less` = informal (*du, tu*), otherwise Supertext's default. Supertext offers no formal/informal choice for English, Swiss German, Romansh, Albanian and Serbian: leave `politeness` out for those. If it is set anyway, the plugin doesn't drop it silently: the editor gets *Supertext offers no formal or informal tone for this language*, nothing is sent, and *Settings → Supertext* shows a warning next to the tone.
+Sites that already had `LANGUAGES` keep working unchanged after the update: their entries still win. To manage a language on the settings page instead, remove its entry and restart.
+
+`politeness`: `more` = formal (*Sie, vous*), `less` = informal (*du, tu*), otherwise Supertext's default. Supertext offers no formal/informal choice for English, Swiss German, Romansh, Albanian and Serbian: the settings page hides the tone for those, and in `LANGUAGES` leave `politeness` out for them. If it is set anyway, the plugin doesn't drop it silently: the editor gets *Supertext offers no formal or informal tone for this language*, nothing is sent, and *Settings → Supertext* shows a warning next to the tone.
 
 ## Version information and the API key check
 
@@ -149,7 +172,7 @@ wagtail-localize's own permissions apply: editors need **Can submit translation*
 | `API_KEY` | – | Supertext API key, with or without the `Supertext-Auth-Key` prefix. The `SUPERTEXT_API_KEY` environment variable wins. |
 | `ENVIRONMENT` | `"live"` | `"live"`, `"staging"` or `"testing"` Supertext API |
 | `ENDPOINT` | – | Custom API base URL (overrides `ENVIRONMENT`). The `SUPERTEXT_API_ENDPOINT` environment variable wins. |
-| `LANGUAGES` | `{}` | Per Wagtail language code: `code`, the Supertext language (the language mapping, e.g. `de-CH`, `es`, `zh-Hans`; needed for every locale whose code isn't itself a Supertext code, see [Locales](#4-locales); no default regions) and `politeness` (`more`/`less`, only for languages that offer it) |
+| `LANGUAGES` | `{}` | Optional override of *Settings → Supertext → Languages*, per Wagtail language code: `code`, the Supertext language (e.g. `de-CH`, `es`, `zh-Hans`) and `politeness` (`more`/`less`, only for languages that offer it). Each entry wins over the choice on the settings page; see [Locales](#4-locales). |
 | `TIMEOUT` | `180` | Seconds to wait for one translation |
 | `POLL_INTERVAL` | `2` | Seconds between status checks |
 | `VERSION_REPORTS` | `True` | *Send version information to Supertext* (see [Version information](#version-information-and-the-api-key-check)). The `SUPERTEXT_VERSION_REPORTS` environment variable (`0`/`1`) wins. |
@@ -160,11 +183,11 @@ wagtail-localize's own permissions apply: editors need **Can submit translation*
 pip install -U "wagtail-supertext-translation @ git+https://github.com/Supertext/Wagtail-Supertext-Translation@main"
 ```
 
-Then run `python manage.py migrate` (version 0.2 adds the plugin's own table). After an update, the next admin request that runs the plugin reports the new version to Supertext (if version information is on).
+Then run `python manage.py migrate` (version 0.2 adds the plugin's state table, the next version the table for the languages chosen on *Settings → Supertext*). After an update, the next admin request that runs the plugin reports the new version to Supertext (if version information is on).
 
 ## Uninstalling
 
-Run `python manage.py migrate wagtail_supertext zero` (drops the plugin's table), remove `WAGTAILLOCALIZE_MACHINE_TRANSLATOR` (or point it at another translator), the `wagtail_supertext.urls` line and `"wagtail_supertext"` from `INSTALLED_APPS`, then `pip uninstall wagtail-supertext-translation`. Existing translations stay.
+Run `python manage.py migrate wagtail_supertext zero` (drops the plugin's tables), remove `WAGTAILLOCALIZE_MACHINE_TRANSLATOR` (or point it at another translator), the `wagtail_supertext.urls` line and `"wagtail_supertext"` from `INSTALLED_APPS`, then `pip uninstall wagtail-supertext-translation`. Existing translations stay.
 
 ## Troubleshooting
 
@@ -175,9 +198,9 @@ Run `python manage.py migrate wagtail_supertext zero` (drops the plugin's table)
 | *Authentication failed* | The key is wrong or revoked. Check it with **Test connection**, or generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). |
 | *Too many requests to Supertext* | Supertext's per-second limit was still exceeded after 4 automatic retries. Wait a moment and try again. |
 | *Your Supertext translation limit is exceeded* | Your Supertext plan's volume is used up. |
-| *The language … has no Supertext language yet* / **Not mapped** on *Settings → Supertext* | The locale's Wagtail code isn't a Supertext code (e.g. `de`, `es-es`, `zh-cn`): set `LANGUAGES` → `code` for it (see [Locales](#4-locales)) and restart. Nothing was sent to Supertext. |
-| *Supertext does not support this language pair* | A mapped code Supertext doesn't offer (e.g. `es-ES` instead of `es`, or the same language as the source). Fix the `LANGUAGES` → `code` entry. The message shows the codes that were sent. |
-| *Supertext offers no formal or informal tone for this language* | `politeness` is set for a language without it (English, Swiss German, Romansh, Albanian, Serbian); remove it for that locale. |
+| *The language … has no Supertext language yet* / **— choose —** on *Settings → Supertext* | The locale has neither a chosen Supertext language nor an obvious default (e.g. `en-ie`, `de-li`, `gsw`): choose one under *Settings → Supertext → Languages* and **Save languages** (see [Locales](#4-locales)). Nothing was sent to Supertext. |
+| *Supertext does not support this language pair* | A code Supertext doesn't offer (e.g. `es-ES` instead of `es` in `LANGUAGES`, or the same language as the source). Check *Settings → Supertext → Languages* and the `LANGUAGES` → `code` entry. The message shows the codes that were sent. |
+| *Supertext offers no formal or informal tone for this language* | `politeness` is set in `LANGUAGES` for a language without it (English, Swiss German, Romansh, Albanian, Serbian); remove it for that locale. |
 | *Supertext rejected the API key* (API key check) | The key is wrong or revoked. Check that the whole key was copied into `SUPERTEXT_API_KEY` (or `API_KEY`), or generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api) (Admin role). No Supertext account yet? [Create one at supertext.com](https://www.supertext.com/person/en/account/signin). Restart, then **Test connection**. |
 | *The API key couldn't be checked because Supertext can't be reached* | The server can't reach `api.supertext.com` (firewall, proxy, DNS). Translations need the same connection. |
 | *Settings → Supertext* says the ping endpoint isn't installed | Add `path("supertext/", include("wagtail_supertext.urls"))` to `urls.py` before `wagtail_urls`. |

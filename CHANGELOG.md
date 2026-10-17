@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+- Added: **Settings → Supertext → Languages**: a drop-down per locale with Supertext's languages (and the tone where the language offers it), saved in the database (new table; run `python manage.py migrate`). The suggested language is preselected. The `LANGUAGES` option stays as an override for automated setups and wins per locale, so existing configurations keep working unchanged.
+- Changed: locales without a chosen language now use an obvious default (`de` → `de-DE`, `en` → `en-US`, `fr` → `fr-FR`, `it` → `it-IT`, `pt` → `pt-PT`, `zh-cn` → `zh-Hans`, `zh-tw` → `zh-Hant`, `es-es` → `es`, …) instead of failing; only locales without one (`en-ie`, `de-li`, `gsw`, …) still need a choice. The *no Supertext language yet* message points to *Settings → Supertext → Languages*. Bundled Supertext SDK updated to 0.4.0 (commit `6aaad33`).
 - Changed: version reports, the API key check result and the reachability ping now use Supertext Plugin Health 0.1.0 (bundled in `wagtail_supertext/_vendor/plugin_health`); bundled Supertext SDK updated to 0.3.0 (commit `f7bd414`). No change for sites: settings and stored state stay as they are.
 - Added: support for Python 3.14 (tested in CI with Wagtail 8.0 and Django 6.1).
 - Added: **Send version information to Supertext** (on by default; `"VERSION_REPORTS": False` or `SUPERTEXT_VERSION_REPORTS=0` turns it off). The plugin reports the site URL and the plugin, Wagtail, Python and SDK versions, whether a key is set and the API key check to the Supertext Commando Center after an update and when the key changes, in the background. No content, no API key, no personal data. See the installation guide.

@@ -68,8 +68,8 @@ If Supertext can't translate, the translation editor shows a red message startin
 | --- | --- |
 | *No Supertext API key is configured* | Ask your administrator to set up Supertext. The message links to the page where a Supertext admin generates the key ([supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api)). |
 | *Authentication failed* | The API key is wrong; ask your administrator to generate a new one at [supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api). |
-| *The language … has no Supertext language yet* | Your administrator hasn't told the plugin which Supertext language to use for this locale. Ask them to map it; nothing was sent to Supertext. |
-| *Supertext does not support this language pair* | One of the languages isn't one Supertext translates; ask your administrator to check the language mapping. |
+| *The language … has no Supertext language yet* | Your administrator hasn't told the plugin which Supertext language to use for this locale. Ask them to choose one under *Settings → Supertext → Languages*; nothing was sent to Supertext. |
+| *Supertext does not support this language pair* | One of the languages isn't one Supertext translates; ask your administrator to check *Settings → Supertext → Languages*. |
 | *Supertext offers no formal or informal tone for this language* | The tone set for this locale isn't available in that language (e.g. English); ask your administrator to set it to the default. |
 | *Too many requests to Supertext* | Wait a moment and try again. |
 | *Your Supertext translation limit is exceeded* | Your organisation's Supertext volume is used up; contact your administrator. |

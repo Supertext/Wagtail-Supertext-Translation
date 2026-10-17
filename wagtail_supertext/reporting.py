@@ -157,7 +157,7 @@ def reporter(options, request=None) -> InstallationReporter | None:
 def run(action: str, options, request=None, http_status: int = 401) -> ReporterResult | None:
     """Runs one reporter action with the stored state and stores the new state. Never raises.
 
-    ``action``: ``on_request``, ``test_connection``, ``authentication_failed`` or ``report_check``.
+    ``action``: ``on_request``, ``settings_saved``, ``test_connection``, ``authentication_failed`` or ``report_check``.
     """
     with _lock:
         try:
@@ -174,6 +174,8 @@ def run(action: str, options, request=None, http_status: int = 401) -> ReporterR
                 return ReporterResult(state, state.key_check, None, False)
             if action == "test_connection":
                 result = current.test_connection(state, options.api_key)
+            elif action == "settings_saved":
+                result = current.after_settings_saved(state, options.api_key)
             elif action == "authentication_failed":
                 result = current.authentication_failed(state, options.api_key, http_status)
             elif action == "report_check":
