@@ -8,6 +8,7 @@ Open a page, choose **Translate this page**, pick the languages, and click **Tra
 - Whole paragraphs go to Supertext with their bold, italic and link markup, so sentences translate naturally
 - Translated page slugs, so translated pages get translated URLs
 - Formal or informal tone and a Supertext language per locale (exact Supertext codes, nothing guessed)
+- **Export for translation** (XLIFF 1.2 or HTML) for translation tools, translators or Supertext's web app, and **import of the translated file** (*Settings → Translation files*)
 - *Settings → Supertext* in the admin shows the configuration, the latest API key check and which locales still need a Supertext language
 
 ![The wagtail-localize translation editor with the Translate with Supertext button](docs/images/translation-editor.png)

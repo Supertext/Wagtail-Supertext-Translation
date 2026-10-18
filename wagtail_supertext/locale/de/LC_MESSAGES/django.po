@@ -313,3 +313,81 @@ msgstr "Die Sprachen sind gespeichert."
 
 msgid "— choose —"
 msgstr "— wählen —"
+
+msgid "File format"
+msgstr "Dateiformat"
+
+msgid "XLIFF 1.2 (for translation tools)"
+msgstr "XLIFF 1.2 (für Übersetzungstools)"
+
+msgid "HTML (one language per file)"
+msgstr "HTML (eine Sprache pro Datei)"
+
+msgid "Translated file (XLIFF or HTML)"
+msgstr "Übersetzte Datei (XLIFF oder HTML)"
+
+msgid "Also import texts whose source changed since the export"
+msgstr "Auch Texte importieren, deren Ausgangstext sich seit dem Export geändert hat"
+
+msgid "Export for translation"
+msgstr "Für Übersetzung exportieren"
+
+msgid "Import translation"
+msgstr "Übersetzung importieren"
+
+msgid "Download file"
+msgstr "Datei herunterladen"
+
+msgid "The file is too large (at most 10 MB)."
+msgstr "Die Datei ist zu groß (höchstens 10 MB)."
+
+msgid "Choose one language for an HTML file, or one or more for XLIFF."
+msgstr "Wählen Sie für eine HTML-Datei eine Sprache, für XLIFF eine oder mehrere."
+
+msgid "Nothing to translate."
+msgstr "Nichts zu übersetzen."
+
+msgid "This file isn't a valid XLIFF or HTML translation file."
+msgstr "Diese Datei ist keine gültige XLIFF- oder HTML-Übersetzungsdatei."
+
+msgid "This file wasn't exported by the Supertext plugin, or its header was removed."
+msgstr "Diese Datei wurde nicht vom Supertext-Plugin exportiert, oder ihr Kopfbereich wurde entfernt."
+
+msgid "This file belongs to another system (%(plugin)s)."
+msgstr "Diese Datei gehört zu einem anderen System (%(plugin)s)."
+
+msgid "The site has no language %(language)s."
+msgstr "Die Website hat keine Sprache %(language)s."
+
+msgid "Imported: %(count)s"
+msgstr "Importiert: %(count)s"
+
+msgid "Skipped, source changed since the export: %(count)s"
+msgstr "Übersprungen, Ausgangstext seit dem Export geändert: %(count)s"
+
+msgid "Not translated in the file: %(count)s"
+msgstr "In der Datei nicht übersetzt: %(count)s"
+
+msgid "Formatting changed, not imported: %(count)s"
+msgstr "Formatierung verändert, nicht importiert: %(count)s"
+
+msgid "Not in the file: %(count)s"
+msgstr "Nicht in der Datei: %(count)s"
+
+msgid "Choose"
+msgstr "Auswählen"
+
+msgid "Page or snippet"
+msgstr "Seite oder Snippet"
+
+msgid "Translation files"
+msgstr "Übersetzungsdateien"
+
+msgid "The page or snippet this file was exported from is no longer being translated."
+msgstr "Die Seite oder das Snippet, aus dem diese Datei exportiert wurde, wird nicht mehr übersetzt."
+
+msgid "You are not allowed to edit this page or snippet."
+msgstr "Sie dürfen diese Seite oder dieses Snippet nicht bearbeiten."
+
+msgid "Translate the file in a translation tool, by a translator or in the Supertext web app, then import it here. The imported texts appear in the wagtail-localize translation editor, where you review and publish them."
+msgstr "Lassen Sie die Datei in einem Übersetzungstool, von einer Übersetzerin oder einem Übersetzer oder in der Supertext-Web-App übersetzen und importieren Sie sie dann hier. Die importierten Texte erscheinen im Übersetzungseditor von wagtail-localize, wo Sie sie prüfen und veröffentlichen."

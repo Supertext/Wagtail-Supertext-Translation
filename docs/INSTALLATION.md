@@ -161,6 +161,8 @@ The plugin keeps its state (what was reported last, the latest key check, never 
 
 wagtail-localize's own permissions apply: editors need **Can submit translation** (*Settings → Groups → Wagtail Localize*) and edit permission on the pages. Anyone who can edit a translation can use **Translate with Supertext** in it. *Settings → Supertext* is for superusers only.
 
+*Settings → Translation files* (*Export for translation*, *Import translation*) is open to every admin user, but lists and imports only translations of pages and snippets the user may edit (wagtail-localize's own check, the same as for *Translate with Supertext*). It needs no API key and has nothing to configure. Uploads are limited to 10 MB (your web server's request size limit must allow that much for the full limit) and are read in memory, never stored.
+
 ## Interface languages
 
 *Settings → Supertext* and the plugin's messages are available in English, German, French and Italian. They follow each user's Wagtail admin language (*Account → Preferences → Preferred language*; `WAGTAILADMIN_PERMITTED_LANGUAGES` limits the choice). Other languages fall back to English. The `manage.py supertext_check` output is English only.

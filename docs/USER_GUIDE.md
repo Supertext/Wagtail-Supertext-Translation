@@ -44,6 +44,46 @@ Repeat steps 3–5 for the other languages.
 
 After editing the original, open the translation and choose **Sync translated pages** (in the original's **⋯** menu) or update the translation. New or changed texts appear untranslated; **Translate with Supertext** translates **only those**. Texts that already have a translation, including ones you edited, are never overwritten. To have Supertext translate a text again, clear its translation (**Edit** → delete the text → save) and click **Translate with Supertext**.
 
+## Export for translation and import translated files
+
+Instead of *Translate with Supertext*, you can download the texts of a translation as a file, have it translated elsewhere and import the result. This is the plugin's own XLIFF/HTML export, under **Settings → Translation files**; it is not the same as wagtail-localize's **Download PO file** / **Upload PO file** in the translation editor (PO files are for gettext tools; XLIFF is what most translation tools and agencies expect, and HTML files can go to Supertext's web app). The texts you import appear in the translation editor exactly like a machine translation: review them and publish there.
+
+First start the translation as usual (**Translate this page**, steps 1–2 above), so the translated page exists. Then:
+
+**Export for translation**
+
+1. Open **Settings → Translation files** and choose the page or snippet under **Page or snippet** (only translations you may edit are listed).
+2. Choose the **File format**:
+   - **XLIFF 1.2 (for translation tools)**: one file for one or more languages. Choose this for translation tools such as Trados, memoQ or Phrase: formatting becomes protected tags that translators can move but not break.
+   - **HTML (one language per file)**: exactly one language. You can upload it to Supertext's web app or give it to anyone who translates HTML. Translators must leave the file's head and the `data-st-id` attributes alone.
+3. Tick the **Languages** and click **Download file**. The file has the same texts *Translate with Supertext* would send: the texts without a translation yet in that language. When everything is translated already, it says *Nothing to translate.*
+
+![Export for translation: the page Swiss chocolate, shipped worldwide (English) chosen, file format HTML (one language per file), Français (Suisse) ticked, and the Download file button](images/files-export.png)
+
+Send the file to your translator or translation agency, or upload it to Supertext's web app.
+
+**Import translation**
+
+1. On the same page, choose the translated file under **Import translation** (XLIFF or HTML, at most 10 MB). The file says which translation it belongs to.
+2. Tick **Also import texts whose source changed since the export** if texts edited in the original after the export should still be imported (off by default: they would no longer match).
+3. Click **Import translation**, then open the translation in the translation editor, check the texts and publish.
+
+As with *Translate with Supertext*, texts that already have a translation (including ones you edited after the export) are never overwritten.
+
+![Import translation after importing a translated HTML file: Swiss chocolate, shipped worldwide → Français (Suisse), Imported: 9](images/files-import.png)
+
+The summary lists each page or snippet and language from the file:
+
+| Line | Meaning |
+| --- | --- |
+| *Imported: n* | Texts written into the translation. |
+| *Skipped, source changed since the export: n* | The original text was edited after the export; tick *Also import texts whose source changed since the export* to import them anyway. |
+| *Not translated in the file: n* | The translator left these empty (XLIFF only). |
+| *Formatting changed, not imported: n* | The translation broke or added formatting (tags, links); fix it in the file and import again. |
+| *Not in the file: n* | Texts that still need a translation but weren't in the file (e.g. added after the export). |
+
+An HTML file can't mark a text as untranslated: imported unchanged, it writes the original text into the translation. Errors: *This file isn't a valid XLIFF or HTML translation file*, *This file wasn't exported by the Supertext plugin, or its header was removed*, *This file belongs to another system (…)* (exported by another Supertext plugin), *The page or snippet this file was exported from is no longer being translated* (the translation was stopped or deleted), *The site has no language …*, *You are not allowed to edit this page or snippet*, *The file is too large (at most 10 MB)*.
+
 ## What gets translated
 
 Everything wagtail-localize offers for translation: titles, rich text (whole paragraphs, with bold, italic and links kept), text fields, StreamField blocks, SEO and search texts, and snippets that are set up for translation. The page's URL slug is translated too, so the German page gets a German URL.

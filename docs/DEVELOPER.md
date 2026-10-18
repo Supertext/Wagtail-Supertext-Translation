@@ -31,6 +31,7 @@ StringTranslation rows (tool name "Supertext"), the editor reviews and publishes
 | `conf.py` | Reads `WAGTAILLOCALIZE_MACHINE_TRANSLATOR["OPTIONS"]` plus `SUPERTEXT_API_KEY` / `SUPERTEXT_API_ENDPOINT` / `SUPERTEXT_VERSION_REPORTS`; Wagtail language code → Supertext code (the SDK's `Languages` with the languages saved on *Settings → Supertext* and the `LANGUAGES` override, see *Language codes*) and tone |
 | `reporting.py` | Commando Center: version reports, the API key check and the ping answer (Plugin Health's `InstallationReporter`, `ping_response`, with the SDK's `check_api_key()` as the key check), site URL, state storage, the key-check messages |
 | `models.py`, `migrations/` | `SupertextState`: one row `reporter` with the reporter's JSON state. `SupertextLanguage`: one row per Wagtail `Locale` (one-to-one, deleted with it) with the chosen Supertext `code` (empty = not chosen) and `politeness` |
+| `files.py`, `templates/wagtail_supertext/files.html` | *Settings → Translation files*: *Export for translation* / *Import translation* (XLIFF and HTML with the SDK's `files`; see *Translation files*) |
 | `urls.py` | Public URLs, included by the site's `urls.py`: `GET /supertext/ping` |
 | `errors.py` | Wraps wagtail-localize's `machine_translate` view (installed in `AppConfig.ready()`): a `SupertextError` becomes an error message in the editor instead of an HTTP 500 |
 | `views.py`, `wagtail_hooks.py`, `templates/` | *Settings → Supertext* (superusers): configuration, plugin version (read from `wagtail_supertext.__version__`, linked to the GitHub release when it is X.Y.Z), latest API key check, *Test connection*, the version-reports setting and ping URL, the **Languages** form (one native `<select>` of `Languages.target_options()` per locale, preselected with the saved code, else `Languages.suggest_target()`, else *— choose —*; a tone select shown only where the chosen target supports politeness; `save_languages()` accepts only codes from the list); `views.ping` (public) |
@@ -58,9 +59,19 @@ Auth header: `Authorization: Supertext-Auth-Key <key>`; a pasted `Supertext-Auth
 
 **Rate limit:** the API limits requests per second per key (HTTP 429). A 429 is retried up to 4 times, waiting for `Retry-After` if sent, otherwise 1, 2, 4 and 8 seconds plus jitter (at most 30 s).
 
+### Translation files (XLIFF and HTML)
+
+*Export for translation* and *Import translation* use the SDK's `files` module (`wagtail_supertext._vendor.supertext.files`, SDK 0.5.0; integration guide → *Translation files*). wagtail-localize has its own PO download/upload in the translation editor; ours is the Supertext XLIFF/HTML format, on *Settings → Translation files* (`views.translation_files`, admin URL `supertext/files/`, menu item in `wagtail_hooks.py`) because the translation editor is wagtail-localize's React app.
+
+- An item is a wagtail-localize `Translation` (source page or snippet × target locale). `files.collect()` returns what `apply_machine_translation()` sends: the source's `StringSegment`s without a `StringTranslation` in the target locale, once per (string, context), keyed **`<context path>#<string id>`**; slugs go out as words (`translator.outgoing()`), as for the API.
+- The import collects the same strings again, calls `import_translations()`, converts `ok` texts (plus `source_changed` with *Also import texts whose source changed since the export*) with `translator.incoming()` (`StringValue.from_translated_html()`, slugs slugified) and writes `StringTranslation` rows with `get_or_create`, exactly as a machine translation does (never over an existing translation), with `translation_type` `manual` and `last_translated_by` the user. The editor reviews and publishes in the translation editor (`save_target`).
+- Job metadata: `plugin` `Wagtail-Supertext-Translation`; `reference` **`translation:<Translation id>:<target locale>`** (`translation:7:fr-ch`; the locale must still be the translation's); `sourceLanguage`/`targetLanguage` from `Options.source_code()`/`target_code()`, else the locale code with `-`, so unmapped locales don't block an export.
+- Permissions: the page lists only sources with a translation the user may edit (`user_can_edit_instance` on the target instance, at most the 200 most recently updated sources); the import checks it per job.
+- File names `wagtail-<TranslationSource id>-<target code>.xlf`/`.html`, `wagtail-<id>.xlf` for several languages; `application/x-xliff+xml` / `text/html; charset=utf-8`. Uploads over 10 MB are refused before they are read (`files.check_size(upload.size)`); the content is decoded and parsed in memory.
+
 ### Supertext SDK
 
-`wagtail_supertext/_vendor/supertext` is the package's own copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins (since SDK 0.3.0 it provides the client and the API key check, `check_api_key()` and `api_key_fingerprint()`; version reports and the ping come from Supertext Plugin Health, below): a private subpackage, so sites install nothing besides this package and an installed `supertext-sdk` can never clash with it. `COMMIT` names the SDK commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
+`wagtail_supertext/_vendor/supertext` is the package's own copy of the Supertext Python SDK (`supertext-sdk`), the shared client of all Supertext plugins (since SDK 0.3.0 it provides the client and the API key check, `check_api_key()` and `api_key_fingerprint()`, since 0.5.0 also the translation files, `files`; version reports and the ping come from Supertext Plugin Health, below): a private subpackage, so sites install nothing besides this package and an installed `supertext-sdk` can never clash with it. `COMMIT` names the SDK commit, `VERSION` its version (`client.SDK_VERSION`). Never edit it: fix the SDK repository and copy it again:
 
 ```bash
 scripts/vendor-sdk.sh                  # latest main of the SDK repository
@@ -130,6 +141,7 @@ pytest
 - `tests/test_client.py`: the plugin's client on the SDK through a fake `requests` session: the API protocol, auth header and prefix, 429 retries, errors and their messages, clean-up, many strings in one document. The SDK's own tests and conformance scenarios run in the SDK repository.
 - `tests/test_document.py`: language mapping and exact codes, SDK defaults, languages without default (no guessing), the settings page's choice and the `LANGUAGES` override, tone support, environment variables, the version-reports setting.
 - `tests/test_reporting.py`: one `installed` report from *Settings → Supertext* (fields, `sdk_version`, callback URL, never the key), nothing more when nothing changed, state stored by the SDK 0.1–0.2 reporter kept (no new report), the bundled Plugin Health version, `upgraded`, *Test connection* with a rejected key (message with links), reports off (nothing sent, key still checked, ping 404), the `VERSION_REPORTS` option, an unreachable center (no retry within the hour), storage failures, the ping answers, a 401/403 reported once, `supertext_check`, the site URL. `tests/conftest.py` sends every report and key check to `tests.fake.FakeTransport` (never the live center or API) in the same thread.
+- `tests/test_files.py`: XLIFF/HTML export and import with wagtail-localize: reference round trip, the mapping and the fallback for unmapped codes, the machine translation's strings and keys, HTML with one language only, nothing to export, `StringTranslation` rows written (title, slug, publish), `source_changed` only with the option, `untranslated`/`invalid_markup`/`missing` not written, errors per job (other system, unknown or deleted translation, wrong locale, no permission), invalid files and the 10 MB limit, the page's export download and import summary, only editable translations listed.
 - `tests/test_translator.py`: wagtail-localize end to end on SQLite: a page with rich text, a link and StreamField blocks is submitted, machine-translated through a fake API session and published; checks markup, link, slug, politeness, "nothing left to translate", errors as editor messages, the settings page, a locale without mapping and default (nothing sent), a choice saved on the settings page, a locale with an SDK default, politeness for a target without it, and a rejected key reported to the (fake) center.
 
 CI (`.github/workflows/ci.yml`) on every push and pull request:
@@ -185,7 +197,7 @@ docker run --rm -p 8000:8000 \
 
 ## Docs screenshots
 
-The images in `docs/images/` are generated by `tests/docs/screenshots.mjs` (Playwright) from a freshly set-up demo whose translator talks to `tests/docs/stand-in.mjs`. The stand-in returns German, French and Italian for the demo's strings (`samples.json`, real Supertext output). Regenerate them whenever a screen they show changes:
+The images in `docs/images/` are generated by `tests/docs/screenshots.mjs` (Playwright) from a freshly set-up demo whose translator talks to `tests/docs/stand-in.mjs`. The stand-in returns German, French and Italian for the demo's strings (`samples.json`, real Supertext output). The script also exports the sample article as HTML for French on *Settings → Translation files*, fills in the French from `samples.json` and imports it (`files-export.png`, `files-import.png`). Regenerate them whenever a screen they show changes:
 
 ```bash
 cd tests/docs && npm install && npx playwright install chromium
@@ -232,5 +244,6 @@ Publishing to PyPI (`python -m build && twine upload dist/*`) is planned.
 - Translation runs inside the editor's request (up to `TIMEOUT` per language); very large pages may need a longer web server timeout. Planned: background translation for whole subtrees.
 - Only machine translation through wagtail-localize. Sites using Wagtail's simple translation (`wagtail.contrib.simple_translation`) instead are not supported.
 - No bulk "translate this subtree into all languages with Supertext" yet: submit the subtree with wagtail-localize, then click *Translate with Supertext* per page and language.
+- *Settings → Translation files* exports one page or snippet at a time (XLIFF can hold several languages); a bulk export of a subtree would be the next step. It has no button in wagtail-localize's translation editor (a React app).
 - Not on PyPI yet.
 - Human (professional) translation orders are not supported yet (the WordPress plugin has them).
