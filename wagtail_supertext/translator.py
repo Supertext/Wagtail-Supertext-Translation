@@ -84,7 +84,9 @@ class SupertextTranslator(BaseMachineTranslator):
             raise SupertextError.from_sdk(
                 sdk.SupertextError(sdk.ErrorCode.UNSUPPORTED_FEATURE, feature="politeness", source_lang=source, target_lang=target)
             )
-        client = self.client()
+        # A locale with *Translation review* on goes through Supertext's review service; the SDK's round trip
+        # (upload, status, download, delete) runs on that one client, so the job is collected where it was sent.
+        client = self.client(review=self.config.review(target_locale.language_code))
         prepared = [outgoing(string.data) for string in strings]
         result = {}
 
@@ -102,5 +104,5 @@ class SupertextTranslator(BaseMachineTranslator):
 
         return result
 
-    def client(self):
-        return self.config.client()
+    def client(self, review=False):
+        return self.config.client(review=review)

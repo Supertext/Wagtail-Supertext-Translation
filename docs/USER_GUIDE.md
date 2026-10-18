@@ -94,6 +94,10 @@ Everything wagtail-localize offers for translation: titles, rich text (whole par
 - Fields your developers marked as not translatable.
 - Texts that already have a translation.
 
+## Translation review
+
+If your administrator turned on *Translation review* for a language, reviewers (your colleagues or Supertext linguists) check and correct the translations on the website. Their corrections come into Wagtail the next time Supertext translates those texts into that language: **Translate with Supertext** only fills texts without a translation, so to take over a correction for a text that is already translated, clear its translation (**Edit** → delete the text → save) and click **Translate with Supertext**. Texts reviewed once keep their corrected wording in later translations.
+
 ## Formal and informal language
 
 Your administrator sets per language whether Supertext writes formally (*Sie/vous*) or informally (*du/tu*).

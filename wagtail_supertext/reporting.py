@@ -44,12 +44,10 @@ from ._vendor.plugin_health import (
 )
 from ._vendor.supertext import SDK_VERSION
 from ._vendor.supertext import v1 as sdk
-from .client import API_KEY_URL, SIGNUP_URL, RequestsTransport
+from .client import API_KEY_URL, PLUGIN_NAME, SIGNUP_URL, RequestsTransport, user_agent
 
 logger = logging.getLogger(__name__)
 
-#: The GitHub repository name (the center reads the latest release from it).
-PLUGIN_NAME = "Wagtail-Supertext-Translation"
 STATE_KEY = "reporter"
 
 #: Runs reporter actions after the request in a thread; tests set it to False (same thread).
@@ -125,7 +123,7 @@ def last_check() -> KeyCheck | None:
 def key_client(options, api_key: str, http) -> sdk.SupertextClient:
     """The SDK client for the key check (the configured API URL, the plugin's user agent and transport)."""
     return sdk.SupertextClient(
-        api_key, base_url=options.base_url, user_agent=f"wagtail-supertext-translation/{__version__}", transport=http
+        api_key, base_url=options.base_url, user_agent=user_agent(), transport=http
     )
 
 

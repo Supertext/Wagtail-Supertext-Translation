@@ -83,6 +83,7 @@ Lessons from the live API, apply them here: header `Authorization: Supertext-Aut
 
 - Before committing: `pytest` (unit tests plus wagtail-localize end to end on SQLite). CI also runs Wagtail 7.0/7.4/8.0 and the demo against PostgreSQL and the stand-in.
 - New options go in `wagtail_supertext/conf.py` **and** the settings table in `docs/INSTALLATION.md`.
+- *Translation review* per locale: `SupertextLanguage.review` (checkbox on *Settings → Supertext → Languages*, `LANGUAGES` → `review` overrides it), review service `REVIEW_URL` / `SUPERTEXT_REVIEW_URL` (default `client.REVIEW_URL`); the second client comes from `Options.client(review=True)`.
 - Admin strings (including the error messages in `client.py`, marked with its own `gettext_noop`): update `wagtail_supertext/locale/{de,fr,it}/LC_MESSAGES/django.po` and recompile each `.mo`; `tests/test_locale.py` checks they are complete (`python -c "import polib; polib.pofile('…/django.po').save_as_mofile('…/django.mo')"`).
 - Keep `wagtail_supertext/client.py` free of Django imports (tested on its own).
 - Commando Center (version reports, key check, ping): `wagtail_supertext/reporting.py` on Supertext Plugin Health's `InstallationReporter` (bundled in `wagtail_supertext/_vendor/plugin_health`) with the SDK's `check_api_key` as the key check; state in the `SupertextState` model (changes need a migration); public `GET /supertext/ping` from `wagtail_supertext.urls`. Tests never reach the live center: `tests/conftest.py` patches the transport.

@@ -103,6 +103,8 @@ def language_rows(options: conf.Options) -> list[dict]:
                 "politeness": options.politeness(code),
                 "politeness_override": options.override_politeness(code),
                 "politeness_supported": Languages.supports_politeness(selected) if selected else None,
+                "review": options.review(code),
+                "review_override": options.override_review(code),
                 # Flagged only when there is neither a mapping nor a default: translating fails until chosen.
                 "missing": not selected,
             }
@@ -111,7 +113,7 @@ def language_rows(options: conf.Options) -> list[dict]:
 
 
 def save_languages(request, options: conf.Options) -> None:
-    """Stores the chosen Supertext code and tone per locale. Only codes from Supertext's list are accepted;
+    """Stores the chosen Supertext code, tone and *Translation review* per locale. Only codes from Supertext's list are accepted;
     a locale set in the LANGUAGES option keeps its row untouched (the option wins anyway)."""
     valid = {option.code for option in Languages.target_options()}
     for locale in Locale.objects.all():
@@ -128,6 +130,8 @@ def save_languages(request, options: conf.Options) -> None:
             row.code = code
         if not options.override_politeness(locale.language_code):
             row.politeness = politeness
+        if options.override_review(locale.language_code) is None:
+            row.review = request.POST.get(f"review-{locale.pk}") == "1"
         row.save()
 
 

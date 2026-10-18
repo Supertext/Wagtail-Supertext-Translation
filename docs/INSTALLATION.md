@@ -14,7 +14,7 @@ For administrators and developers adding Supertext to a Wagtail site.
 | wagtail-localize | 1.12 or newer |
 | Python | 3.10 or newer (whatever your Wagtail needs; tested up to 3.14) |
 | Supertext | An account ([create one or log in](https://www.supertext.com/person/en/account/signin)) and an API key ([supertext.com → Integrations → API](https://www.supertext.com/en/integrations/api), needs the Admin role). See [Getting a Supertext account and API key](#getting-a-supertext-account-and-api-key). |
-| Network | The server must reach `https://api.supertext.com` over HTTPS |
+| Network | The server must reach `https://api.supertext.com` over HTTPS (and, for [Translation review](#translation-review), Supertext's review service) |
 
 This package is a machine translator **for wagtail-localize**. If your site doesn't use wagtail-localize yet, set it up first: [wagtail-localize installation](https://wagtail-localize.org/stable/how-to/installation/). That includes `WAGTAIL_I18N_ENABLED = True`, `WAGTAIL_CONTENT_LANGUAGES` and making your page models translatable (Wagtail pages are by default).
 
@@ -100,9 +100,9 @@ Supertext translates into the site's **locales** (*Settings → Locales*, from `
 
 ### Choosing the Supertext language: *Settings → Supertext → Languages*
 
-*Settings → Supertext* (superusers) has a **Languages** table with one row per locale, the source language included (one choice serves both directions). Each row has a drop-down with Supertext's target languages (*German (Switzerland) (de-CH)*, *Spanish (es)*, …) and, where the chosen language offers it, a **Tone** drop-down (*Default*, *Formal (Sie, vous)*, *Informal (du, tu)*). **Save languages** stores the choices in the database (table `wagtail_supertext_supertextlanguage`, created by `migrate`); only codes from Supertext's list are accepted.
+*Settings → Supertext* (superusers) has a **Languages** table with one row per locale, the source language included (one choice serves both directions). Each row has a drop-down with Supertext's target languages (*German (Switzerland) (de-CH)*, *Spanish (es)*, …) and, where the chosen language offers it, a **Tone** drop-down (*Default*, *Formal (Sie, vous)*, *Informal (du, tu)*), and a **Translation review** checkbox (off by default, see [Translation review](#translation-review)). **Save languages** stores the choices in the database (table `wagtail_supertext_supertextlanguage`, created by `migrate`); only codes from Supertext's list are accepted.
 
-![Settings → Supertext → Languages: one row per locale with a drop-down of Supertext languages and a Tone drop-down, and the Save languages button](images/settings-languages.png)
+![Settings → Supertext → Languages: one row per locale with a drop-down of Supertext languages, a Tone drop-down and a Translation review checkbox (not ticked), and the Save languages button](images/settings-languages.png)
 
 The drop-down preselects the saved choice, else the **suggested** language. When translating, a locale's Supertext language is:
 
@@ -128,7 +128,7 @@ The drop-down preselects the saved choice, else the **suggested** language. When
 
 ### Override in the settings: `LANGUAGES`
 
-For automated setups, the `LANGUAGES` option sets the language and tone per locale (keyed by its Wagtail language code) in the Django settings. It wins over *Settings → Supertext*, per entry: a locale with `code` here shows that code instead of a drop-down, one with `politeness` here shows that tone.
+For automated setups, the `LANGUAGES` option sets the language, tone and *Translation review* per locale (keyed by its Wagtail language code) in the Django settings. It wins over *Settings → Supertext*, per entry: a locale with `code` here shows that code instead of a drop-down, one with `politeness` here shows that tone, one with `review` (`True`/`False`) shows *On*/*Off* instead of the checkbox.
 
 ```python
 "OPTIONS": {
@@ -137,6 +137,7 @@ For automated setups, the `LANGUAGES` option sets the language and tone per loca
         "fr": {"code": "fr-CH", "politeness": "more"},  # Swiss French, formal (vous)
         "de": {"code": "de-CH", "politeness": "less"},  # Swiss German, informal (du)
         "zh-cn": {"code": "zh-Hans"},                    # Chinese (Simplified)
+        "it": {"code": "it-CH", "review": True},         # Swiss Italian, with Translation review
     },
 },
 ```
@@ -144,6 +145,20 @@ For automated setups, the `LANGUAGES` option sets the language and tone per loca
 Sites that already had `LANGUAGES` keep working unchanged after the update: their entries still win. To manage a language on the settings page instead, remove its entry and restart.
 
 `politeness`: `more` = formal (*Sie, vous*), `less` = informal (*du, tu*), otherwise Supertext's default. Supertext offers no formal/informal choice for English, Swiss German, Romansh, Albanian and Serbian: the settings page hides the tone for those, and in `LANGUAGES` leave `politeness` out for them. If it is set anyway, the plugin doesn't drop it silently: the editor gets *Supertext offers no formal or informal tone for this language*, nothing is sent, and *Settings → Supertext* shows a warning next to the tone.
+
+## Translation review
+
+With **Translation review**, people check the translations on the website itself and correct them there: customers or Supertext linguists open the original and the translated page side by side in Chrome with the *Supertext Localization Review* extension and fix texts in a side panel. Their corrections come back into Wagtail.
+
+Turn it on per language for the locale that is translated **into**: *Settings → Supertext → Languages* → tick **Translation review** in that locale's row → **Save languages** (or `"review": True` for that locale in the `LANGUAGES` option). Untick it to turn it off again; nothing else changes.
+
+- Translations into that locale then go through Supertext's review service instead of directly to Supertext. It answers exactly like Supertext and passes everything on with your API key, so billing, languages, formal/informal and error messages stay the same.
+- The review service keeps every translation of your account. A text it has translated before gets the same translation again (without a new Supertext call), and once a reviewer has corrected it, the corrected text.
+- **Corrections arrive with the next translation:** wagtail-localize's *Translate with Supertext* only fills texts that have no translation yet (it never overwrites one), so a reviewer's correction reaches Wagtail when that text is translated again: clear its translation in the translation editor (**Edit** → delete the text → save) and click **Translate with Supertext**. New and changed texts that were corrected before get the corrected wording right away.
+- Reviewers get a review link for your site from Supertext; nothing to set up in Wagtail.
+- The review service works with keys of the **live** Supertext API. With `ENVIRONMENT` `"staging"` or `"testing"` (or an `ENDPOINT`), leave review off.
+- *Export for translation* and *Import translation* don't use the review service. The API key check (*Test connection*, `manage.py supertext_check`) still goes directly to Supertext.
+- `REVIEW_URL` (default: Supertext's review service) sets its address; `""` turns review off for every locale (the checkboxes then show –). Only change it when Supertext gives you another address.
 
 ## Version information and the API key check
 
@@ -174,7 +189,8 @@ wagtail-localize's own permissions apply: editors need **Can submit translation*
 | `API_KEY` | – | Supertext API key, with or without the `Supertext-Auth-Key` prefix. The `SUPERTEXT_API_KEY` environment variable wins. |
 | `ENVIRONMENT` | `"live"` | `"live"`, `"staging"` or `"testing"` Supertext API |
 | `ENDPOINT` | – | Custom API base URL (overrides `ENVIRONMENT`). The `SUPERTEXT_API_ENDPOINT` environment variable wins. |
-| `LANGUAGES` | `{}` | Optional override of *Settings → Supertext → Languages*, per Wagtail language code: `code`, the Supertext language (e.g. `de-CH`, `es`, `zh-Hans`) and `politeness` (`more`/`less`, only for languages that offer it). Each entry wins over the choice on the settings page; see [Locales](#4-locales). |
+| `REVIEW_URL` | Supertext's review service | Address of the review service for locales with *Translation review* on (see [Translation review](#translation-review)). `""` turns review off for every locale. The `SUPERTEXT_REVIEW_URL` environment variable wins when it is set and not empty. |
+| `LANGUAGES` | `{}` | Optional override of *Settings → Supertext → Languages*, per Wagtail language code: `code`, the Supertext language (e.g. `de-CH`, `es`, `zh-Hans`), `politeness` (`more`/`less`, only for languages that offer it) and `review` (`True`/`False`, *Translation review*). Each entry wins over the choice on the settings page; see [Locales](#4-locales). |
 | `TIMEOUT` | `180` | Seconds to wait for one translation |
 | `POLL_INTERVAL` | `2` | Seconds between status checks |
 | `VERSION_REPORTS` | `True` | *Send version information to Supertext* (see [Version information](#version-information-and-the-api-key-check)). The `SUPERTEXT_VERSION_REPORTS` environment variable (`0`/`1`) wins. |
@@ -185,7 +201,7 @@ wagtail-localize's own permissions apply: editors need **Can submit translation*
 pip install -U "wagtail-supertext-translation @ git+https://github.com/Supertext/Wagtail-Supertext-Translation@main"
 ```
 
-Then run `python manage.py migrate` (version 0.2 adds the plugin's state table, the next version the table for the languages chosen on *Settings → Supertext*). After an update, the next admin request that runs the plugin reports the new version to Supertext (if version information is on).
+Then run `python manage.py migrate` (version 0.2 adds the plugin's state table, the next version the table for the languages chosen on *Settings → Supertext* and its *Translation review* column; existing locales start with review off). After an update, the next admin request that runs the plugin reports the new version to Supertext (if version information is on).
 
 ## Uninstalling
 
@@ -207,6 +223,8 @@ Run `python manage.py migrate wagtail_supertext zero` (drops the plugin's tables
 | *The API key couldn't be checked because Supertext can't be reached* | The server can't reach `api.supertext.com` (firewall, proxy, DNS). Translations need the same connection. |
 | *Settings → Supertext* says the ping endpoint isn't installed | Add `path("supertext/", include("wagtail_supertext.urls"))` to `urls.py` before `wagtail_urls`. |
 | *Timed out waiting* | Very long pages: raise `TIMEOUT`, and your web server's request timeout (e.g. gunicorn `--timeout`). |
+| *Authentication failed* only for locales with *Translation review* | The review service only works with keys of the live Supertext API: with `ENVIRONMENT` `"staging"`/`"testing"` (or an `ENDPOINT`) leave review off. |
+| Reviewers' corrections don't show up in Wagtail | They arrive with the next translation of each text: clear the text's translation in the translation editor and click **Translate with Supertext** (texts that already have a translation are never overwritten). Check that the locale's *Translation review* is ticked on *Settings → Supertext*. |
 | *Could not reach Supertext* | The server can't make outbound HTTPS calls; check firewall or proxy (`HTTPS_PROXY`). |
 
 Errors are shown to the editor in the translation editor and logged by Django.

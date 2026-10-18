@@ -22,6 +22,8 @@
       </dd>
       <dt>{% trans "API" %}</dt>
       <dd><code>{{ options.base_url }}</code></dd>
+      <dt>{% trans "Review service" %}</dt>
+      <dd>{% if options.review_available %}<code>{{ options.review_url }}</code>{% else %}{% trans "Off (REVIEW_URL is empty)" %}{% endif %}</dd>
       <dt>{% trans "Plugin version" %}</dt>
       <dd>{% if version_url %}<a href="{{ version_url }}" target="_blank" rel="noopener">{{ version }}</a>{% else %}{{ version }}{% endif %}</dd>
       <dt>{% trans "API key check" %}</dt>
@@ -54,13 +56,14 @@
   <section>
     <h2 class="w-h3">{% trans "Languages" %}</h2>
     <p class="help">{% trans "Choose the Supertext language for each locale. The same choice is used when the locale is the source language. The suggested language is preselected; a locale without a suggestion can't be translated until you choose one." %}</p>
-    <p class="help">{% blocktrans trimmed %}For automated setups, <code>code</code> and <code>politeness</code> in the <code>LANGUAGES</code> option override the choice made here (see the installation guide).{% endblocktrans %}</p>
+    <p class="help">{% trans "Translation review: translations into this locale go through Supertext's review service, so reviewers can check and correct them on the website with the Supertext Localization Review extension. Their corrections are used the next time the page is translated." %}</p>
+    <p class="help">{% blocktrans trimmed %}For automated setups, <code>code</code>, <code>politeness</code> and <code>review</code> in the <code>LANGUAGES</code> option override the choice made here (see the installation guide).{% endblocktrans %}</p>
     <form method="post" class="supertext-languages">
       {% csrf_token %}
       <input type="hidden" name="action" value="languages">
       <table class="listing">
         <thead>
-          <tr><th>{% trans "Locale" %}</th><th>{% trans "Supertext language" %}</th><th>{% trans "Tone" %}</th></tr>
+          <tr><th>{% trans "Locale" %}</th><th>{% trans "Supertext language" %}</th><th>{% trans "Tone" %}</th><th>{% trans "Translation review" %}</th></tr>
         </thead>
         <tbody>
           {% for locale in locales %}
@@ -92,6 +95,16 @@
                     <option value="less"{% if locale.politeness == "less" %} selected{% endif %}>{% trans "Informal (du, tu)" %}</option>
                   </select>
                   <span data-supertext-no-politeness="{{ locale.id }}"{% if locale.politeness_supported %} hidden{% endif %}>–</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if locale.review_override is not None %}
+                  {% if locale.review %}{% trans "On" %}{% else %}{% trans "Off" %}{% endif %}
+                  <p class="help">{% trans "Set in the LANGUAGES option" %}</p>
+                {% elif options.review_available %}
+                  <input type="checkbox" name="review-{{ locale.id }}" value="1" id="supertext-review-{{ locale.id }}" aria-label="{% trans "Translation review" %}: {{ locale.name }}"{% if locale.review %} checked{% endif %}>
+                {% else %}
+                  –
                 {% endif %}
               </td>
             </tr>
