@@ -8,5 +8,6 @@ __pycache__/
 /demo/static/
 /demo/media/
 /tests/docs/node_modules
-/tests/docs/package-lock.json
+/tests/e2e/node_modules/
+/tests/e2e/artifacts/
 .venv/
